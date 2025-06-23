@@ -63,6 +63,7 @@ function checkCorrect(userInput, accepts) {
 
 // ------ [4] 제출 API ------
 app.post('/api/submit', async (req, res) => {
+  console.log("[submit] 받은 페이로드:", req.body); // 👈 여기 추가!
   const { company, employeeId, name, quizResults, startTime, endTime } = req.body;
 
   // --- 1. 필드체크 ---
