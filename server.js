@@ -4,6 +4,17 @@ const axios = require('axios');
 const cors = require('cors');
 const app = express();
 
+// Express JSON 미들웨어 전에 로그 추가
+app.use((req, res, next) => {
+  let bodyData = '';
+  req.on('data', chunk => { bodyData += chunk; });
+  req.on('end', () => {
+    console.log("🔍 원본 body 데이터:", bodyData); // 👈 원본 바디 확인!
+    next();
+  });
+});
+
+
 app.use(express.json());
 app.use(cors());
 
