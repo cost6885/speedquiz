@@ -5,6 +5,7 @@ import FallingBgLayer from "./components/FallingBgLayer"; // 추가!
 import WORDS from "./data/words";
 import "./styles.css";
 import RankingBoard from "./components/RankingBoard";
+import EventPrizeBoard from "./components/EventPrizeBoard"; // 추가
 
 function shuffle(array) {
   return array.slice().sort(() => Math.random() - 0.5);
@@ -17,6 +18,7 @@ const App = () => {
   const [startTime, setStartTime] = useState(null);
   const [currentIdx, setCurrentIdx] = useState(0); // 현재 문제 번호
   const [showRanking, setShowRanking] = useState(false);
+  const [showPrize, setShowPrize] = useState(false); // 상품 보드 오픈 여부
 
   const handleStart = () => setStep("quiz");
 
@@ -60,6 +62,22 @@ const App = () => {
             >
               🏆 랭킹 보드
             </button>
+            <button
+              className="prize-btn"
+              style={{
+                fontWeight: 600,
+                fontSize: 16,
+                border: "1.5px solid #ff8844",
+                background: "#fff5e6",
+                color: "#d97d15",
+                padding: "7px 17px",
+                borderRadius: 16,
+                cursor: "pointer",
+              }}
+              onClick={() => setShowPrize(true)}
+            >
+              🎁 이벤트 상품
+            </button>                
             <h1 className="title">
               <span className="title-main">
                 디지털 리터러시
@@ -104,6 +122,7 @@ const App = () => {
         )}
       </div>
       <RankingBoard open={showRanking} onClose={() => setShowRanking(false)} />;
+      <EventPrizeBoard open={showPrize} onClose={() => setShowPrize(false)} />
     </>
   );
 };
