@@ -1,8 +1,7 @@
 // src/components/RankingBoard.js
 import React, { useEffect, useState } from "react";
 
-const RANKING_API =
-  "https://script.google.com/macros/s/AKfycbzRfrffVsLeUdwTqFx38pfv_sOFJzEaDd-LHDCPwCh3BsdufU0sqT_hI9K5HLtJHOQb8g/exec?type=ranking";
+const RANKING_API = "/api/ranking"; // 프록시 경로로 변경!
 
 export default function RankingBoard({ open, onClose }) {
   const [list, setList] = useState([]);
