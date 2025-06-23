@@ -4,19 +4,16 @@ const axios = require('axios');
 const cors = require('cors');
 const app = express();
 
-// Express JSON 미들웨어 전에 로그 추가
-app.use((req, res, next) => {
-  let bodyData = '';
-  req.on('data', chunk => { bodyData += chunk; });
-  req.on('end', () => {
-    console.log("🔍 원본 body 데이터:", bodyData); // 👈 원본 바디 확인!
-    next();
-  });
-});
-
 
 app.use(express.json());
 app.use(cors());
+
+// 원본 body 데이터를 JSON 파싱 이후 찍기 (순서 중요!)
+app.use((req, res, next) => {
+  console.log("🔍 파싱된 req.body 데이터:", req.body);  // ✅ JSON 파싱 후의 body
+  next();
+});
+
 
 // ------ [1] 퀴즈 데이터 (실제 출제와 동일하게! 바꿔서 사용) ------
 const QUIZ_PROBLEMS = [
