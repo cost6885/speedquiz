@@ -22,13 +22,13 @@ const PRIZES = [
   },
   {
     rank: "4~10등",
-    title: "스타벅스 아이스 아메리카노 1잔 (추첨 4명)",
+    title: "스타벅스 아이스 아메리카노 1잔",
     img: "https://www.biz-con.co.kr/upload/images/202501/400_20250122164028679_2.jpg",
-    desc: "운도 실력! 상쾌하게 쿨타임!",
+    desc: "아쉽지만 시원한 커피라도 한 잔",
   },
   {
     rank: "참여 추첨",
-    title: "스타벅스 아이스 아메리카노 1잔 (추첨 8명)",
+    title: "스타벅스 아이스 아메리카노 1잔 (추첨 5명)",
     img: "https://www.biz-con.co.kr/upload/images/202501/400_20250122164028679_2.jpg",
     desc: "도전만 해도 행운의 기회!",
   },
