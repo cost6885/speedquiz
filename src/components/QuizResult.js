@@ -126,13 +126,9 @@ const QuizResult = ({ results, startTime, onRestart }) => {
     name: "",
   });
 
+  // 여기선 정답수, 시간은 "보여주기용"만 사용, 서버에선 실제로 다시 검증!
   const correctCount = results.filter((r) => r.correct).length;
-
-  // 제출
-  const totalTime = (
-    (results[results.length - 1]?.time - startTime) /
-    1000
-  ).toFixed(2);
+  const totalTime = ((results[results.length - 1]?.time - startTime) / 1000).toFixed(2);
 
   const handleSubmit = async () => {
     if (!form.company || !form.employeeId || !form.name) {
@@ -142,11 +138,11 @@ const QuizResult = ({ results, startTime, onRestart }) => {
     try {
       const payload = {
         ...form,
-        timeTaken: totalTime,
-        time: new Date().toISOString(),
-        status: "정상",
+        quizResults: results, // 모든 문제 풀이 로그
+        startTime,            // 시작 시간 (client-side)
+        endTime: results[results.length - 1]?.time, // 마지막 제출 시간 (client-side)
       };
-      const res = await submitRecord(payload);
+      const res = await submitRecord(payload); // /api/submit로
       if (res?.status === "success") {
         setSubmitted(true);
         setSubmitMsg("제출 완료! 기록이 저장되었습니다 🎉");
