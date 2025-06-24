@@ -40,8 +40,8 @@ export default function RankingBoard({ open, onClose }) {
       <div
         style={{
           background: "#fff",
-          minWidth: 350,
-          maxWidth: 400,
+          minWidth: 500,
+          maxWidth: 600,
           maxHeight: 520,
           borderRadius: 16,
           boxShadow: "0 10px 40px #1232",
@@ -71,7 +71,7 @@ export default function RankingBoard({ open, onClose }) {
             textAlign: "center",
             marginBottom: 18,
             fontWeight: 700,
-            fontSize: 21,
+            fontSize: 30,
           }}
         >
           🏆 실시간 랭킹 보드
@@ -103,7 +103,7 @@ export default function RankingBoard({ open, onClose }) {
                       textAlign: "center",
                       color: i < 3 ? "#FFD700" : "#222",
                       fontWeight: i < 3 ? 700 : 500,
-                      fontSize: i === 0 ? 17 : 15,
+                      fontSize: i === 0 ? 20 : 18,
                     }}
                   >
                     {i + 1}
@@ -112,12 +112,12 @@ export default function RankingBoard({ open, onClose }) {
                     style={{
                       fontWeight: 600,
                       color: "#277",
-                      fontSize: 15,
+                      fontSize: 18,
                     }}
                   >
                     {r.name}
                   </td>
-                  <td style={{ color: "#488", fontSize: 13 }}>{r.company}</td>
+                  <td style={{ color: "#488", fontSize: 18 }}>{r.company}</td>
                   <td style={{ textAlign: "center", fontWeight: 700 }}>
                     {r.time}
                   </td>
