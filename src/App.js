@@ -44,41 +44,7 @@ const App = () => {
       <div className="app">
         {step === "intro" && (
           <div className="intro">
-            <button
-              className="ranking-btn"
-              style={{
-                marginLeft: 14,
-                fontWeight: 600,
-                fontSize: 16,
-                border: "1.5px solid #0099ff",
-                background: "#eaf6fd",
-                color: "#118",
-                padding: "7px 17px",
-                borderRadius: 16,
-                marginTop: 10,
-                cursor: "pointer",
-              }}
-              onClick={() => setShowRanking(true)}
-            >
-              🏆 랭킹 보드
-            </button>
-            <button
-              className="prize-btn"
-              style={{
-                fontWeight: 600,
-                fontSize: 16,
-                border: "1.5px solid #ff8844",
-                background: "#fff5e6",
-                color: "#d97d15",
-                padding: "7px 17px",
-                borderRadius: 16,
-                cursor: "pointer",
-              }}
-              onClick={() => setShowPrize(true)}
-            >
-              🎁 이벤트 상품
-            </button>                
-            <h1 className="title">
+            <h1 className="title" style={{ marginBottom: 18 }}>
               <span className="title-main">
                 디지털 리터러시
                 <br />
@@ -86,7 +52,7 @@ const App = () => {
               </span>
               <span className="title-glow"></span>
             </h1>
-            <div className="intro-desc">
+            <div className="intro-desc" style={{ marginTop: 0 }}>
               <p>
                 <b>TBON</b>에 나온 10가지 용어들이 문제로 등장합니다.
               </p>
@@ -102,6 +68,64 @@ const App = () => {
             <button className="start-btn" onClick={handleStart}>
               게임 시작
             </button>
+            {/* ===== 디바이더 추가!! ===== */}
+            <div
+              style={{
+                margin: "36px auto 20px",
+                width: "60%",
+                height: 1,
+                background:
+                  "linear-gradient(90deg, #e6e9f3 0%, #b3dbfd 50%, #e6e9f3 100%)",
+                opacity: 0.66,
+                borderRadius: 2,
+                boxShadow: "0 1.5px 8px #b7d6e433",
+              }}
+            />
+            {/* ======================== */}
+
+            <div
+              style={{
+                display: "flex",
+                gap: 16,
+                justifyContent: "center",
+                margin: "0px 0 0", // 설명카드 아래로 좀 띄워줌 (위치 맘대로 조절)
+              }}
+            >
+              <button
+                className="ranking-btn"
+                style={{
+                  fontWeight: 700,
+                  fontSize: 20, // ← 더 큼
+                  minWidth: 160,
+                  height: 50,
+                  border: "2px solid #0099ff",
+                  background: "#eaf6fd",
+                  color: "#118",
+                  borderRadius: 18,
+                  cursor: "pointer",
+                }}
+                onClick={() => setShowRanking(true)}
+              >
+                🏆 랭킹 보드
+              </button>
+              <button
+                className="prize-btn"
+                style={{
+                  fontWeight: 700,
+                  fontSize: 20, // ← 더 큼
+                  minWidth: 160,
+                  height: 50,
+                  border: "2px solid #ff8844",
+                  background: "#fff5e6",
+                  color: "#d97d15",
+                  borderRadius: 18,
+                  cursor: "pointer",
+                }}
+                onClick={() => setShowPrize(true)}
+              >
+                🎁 이벤트 상품
+              </button>
+            </div>
           </div>
         )}
 
