@@ -30,7 +30,7 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
       setShowQuestion(true); // 2. 그 다음에 새 문제 보이기 (fade in)
       setUserInput("");
       setIsCorrect(false);
-      setHintMsg("");
+      setHintMsg("");  // ⭐️ 문제 바뀔 때마다 hintMsg 완전 초기화!!      
       if (setCurrentIdx) setCurrentIdx(index);
       if (inputRef.current) inputRef.current.focus();
     }, 220); // 200ms 정도 숨긴 뒤 교체
@@ -112,7 +112,9 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
           {index + 1 === quizList.length ? "제출" : "다음"}
         </button>
       </div>
-      {hintMsg && <div className="hint-text">{hintMsg}</div>}
+      {hintMsg && showQuestion && (  // ⭐️ 여기!!
+  <div className="hint-text">{hintMsg}</div>
+)}
 
       <Timer />
       <div className="quiz-progress">
