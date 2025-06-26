@@ -47,6 +47,8 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
 
   // 다음/제출 버튼 클릭
   const handleNext = () => {
+    setHintMsg(""); // 버튼 누를 때 무조건 힌트 리셋!
+    
     if (!userInput) {
       setHintMsg("답을 입력하세요!");
       return;
@@ -60,8 +62,7 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
           correct: true,
           time: Date.now(),
         },
-      ]);
-      setHintMsg(""); // 성공시 메시지 리셋
+      ]);      
       if (index + 1 < quizList.length) {
         setIndex(index + 1);
       } else {
