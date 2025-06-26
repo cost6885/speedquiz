@@ -47,41 +47,43 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
 
   // 다음/제출 버튼 클릭
   const handleNext = () => {
-    setHintMsg(""); // 버튼 누를 때 무조건 힌트 리셋!
-    
-    if (!userInput) {
-      setHintMsg("답을 입력하세요!");
-      return;
-    }
-    if (isAnswerCorrect(userInput, quizList[index])) {
-      setUserAnswers([
-        ...userAnswers,
-        {
-          word: quizList[index].word,
-          userInput,
-          correct: true,
-          time: Date.now(),
-        },
-      ]);      
-      if (index + 1 < quizList.length) {
-        setIndex(index + 1);
-      } else {
-        onFinish(
-          userAnswers.concat([
-            {
-              word: quizList[index].word,
-              userInput,
-              correct: true,
-              time: Date.now(),
-            },
-          ]),
-          startTime
-        );
-      }
+  if (!userInput) {
+    setHintMsg("답을 입력하세요!");
+    return;
+  }
+  if (isAnswerCorrect(userInput, quizList[index])) {
+    setUserAnswers([
+      ...userAnswers,
+      {
+        word: quizList[index].word,
+        userInput,
+        correct: true,
+        time: Date.now(),
+      },
+    ]);
+    setHintMsg(""); // 정답이면 힌트 메시지 제거
+    if (index + 1 < quizList.length) {
+      setIndex(index + 1);
     } else {
-      setHintMsg("오답입니다! 다시 시도해보세요 😅");
+      onFinish(
+        userAnswers.concat([
+          {
+            word: quizList[index].word,
+            userInput,
+            correct: true,
+            time: Date.now(),
+          },
+        ]),
+        startTime
+      );
     }
-  };
+    return; // 💡 여기가 핵심! "정답" 처리 후엔 return해서 else문에 안들어가게
+  }
+
+  // 이 else 블록은 정답이 아닐 때만 실행!
+  setHintMsg("오답입니다! 다시 시도해보세요 😅");
+};
+
 
   // 엔터키도 동일하게
   const handleKeyDown = (e) => {
