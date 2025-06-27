@@ -50,6 +50,19 @@ function getMinJamoCount(problem) {
   return Math.min(...hangulAnswers.map(ans => disassembleHangul(ans).length));
 }
 
+// accepts에서 "최소 타수" (한글=자모, 영문/숫자=문자) 추출
+function getMinKeyCount(problem) {
+  // 모든 정답 케이스에 대해, 한글은 자모분해, 영문 등은 문자수
+  return Math.min(
+    ...(problem.accepts || []).map(ans =>
+      /[가-힣]/.test(ans)
+        ? disassembleHangul(ans).length
+        : ans.length
+    )
+  );
+}
+
+
 const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
   const [index, setIndex] = useState(0);
   const [userInput, setUserInput] = useState("");
@@ -109,46 +122,51 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
 
   // 다음/제출 버튼 클릭
   const handleNext = () => {
-    const minJamoCount = getMinJamoCount(quizList[index]);
-    if (!userInput) {
-      setHintMsg("답을 입력하세요!");
-      return;
+  const minKeyCount = getMinKeyCount(quizList[index]);
+  const userKeyCount = /[가-힣]/.test(userInput)
+    ? disassembleHangul(userInput).length
+    : userInput.length;
+  if (!userInput) {
+    setHintMsg("답을 입력하세요!");
+    return;
+  }
+  // 붙여넣기 우회 등 막기: "타수 부족" 안내
+  if (minKeyCount > 0 && userKeyCount < minKeyCount) {
+    setHintMsg(
+      `정답을 직접 타이핑해 주세요! (최소 ${minKeyCount}타 입력 필요)`
+    );
+    return;
+  }
+  if (isAnswerCorrect(userInput, quizList[index])) {
+    setUserAnswers([
+      ...userAnswers,
+      {
+        word: quizList[index].word,
+        userInput,
+        correct: true,
+        time: Date.now(),
+      },
+    ]);
+    setHintMsg("");
+    if (index + 1 < quizList.length) {
+      setIndex(index + 1);
+    } else {
+      onFinish(
+        userAnswers.concat([
+          {
+            word: quizList[index].word,
+            userInput,
+            correct: true,
+            time: Date.now(),
+          },
+        ]),
+        startTime
+      );
     }
-    // 붙여넣기 우회 등 막기: "타수 부족" 안내
-    if (minJamoCount > 0 && disassembleHangul(userInput).length < minJamoCount) {
-      setHintMsg(`정답을 직접 타이핑해 주세요! (${minJamoCount}타 이상 필요)`);
-      return;
-    }
-    if (isAnswerCorrect(userInput, quizList[index])) {
-      setUserAnswers([
-        ...userAnswers,
-        {
-          word: quizList[index].word,
-          userInput,
-          correct: true,
-          time: Date.now(),
-        },
-      ]);
-      setHintMsg("");
-      if (index + 1 < quizList.length) {
-        setIndex(index + 1);
-      } else {
-        onFinish(
-          userAnswers.concat([
-            {
-              word: quizList[index].word,
-              userInput,
-              correct: true,
-              time: Date.now(),
-            },
-          ]),
-          startTime
-        );
-      }
-      return;
-    }
-    setHintMsg("오답입니다! 다시 시도해보세요 😅");
-  };
+    return;
+  }
+  setHintMsg("오답입니다! 다시 시도해보세요 😅");
+};
 
   // 엔터키도 동일하게
   const handleKeyDown = (e) => {
