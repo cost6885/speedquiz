@@ -7,8 +7,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ------ [임시 IP 추적용] ------
-const ipMap = new Map(); // key: ip, value: [timestamp,...]
+// ------ [임시 IP/UA 추적용] ------
+const ipMap = new Map();      // key: ip, value: [timestamp,...]
+const recordSet = new Map();  // key: "회사/사번"  value: {time, ...}
 
 // ------ [1] 퀴즈 데이터 ------
 const QUIZ_PROBLEMS = [
@@ -24,19 +25,16 @@ const QUIZ_PROBLEMS = [
   { word: "디지털트윈", accepts: ["디지털트윈", "digitaltwin", "digital twin"] },
 ];
 
-// ------ [2] 중복 제출 체크용 ------
-const recordSet = new Map(); // key: "회사/사번"  value: {time, ...}
-
-// ------ [3] 정답 비교 ------
+// ------ [정답 비교] ------
 function checkCorrect(userInput, accepts) {
   const norm = (s) => (s || "").replace(/\s+/g, "").toLowerCase();
   return accepts.some(ans => norm(ans) === norm(userInput));
 }
 
-// ------ [4] 제출 API ------
+// ------ [제출 API] ------
 app.post('/api/submit', async (req, res) => {
   console.log("[submit] 받은 페이로드:", req.body);
-  const { company, employeeId, name, quizResults, startTime, endTime } = req.body;
+  const { company, employeeId, name, quizResults, startTime, endTime, captchaValue } = req.body;
 
   // 1. 필드체크
   if (!company || !employeeId || !name || !Array.isArray(quizResults) || !startTime || !endTime) {
@@ -97,6 +95,11 @@ app.post('/api/submit', async (req, res) => {
     }
   }
 
+  // 4-5. (옵션) 캡차 검증: 실제 서비스에서는 별도의 세션 등에서 captcha 검증 필요
+  if (!validateCaptcha(captchaValue, userIp)) {
+    return res.status(400).json({ status: "error", message: "캡차 검증 실패" });
+  }
+
   // 5. 최고기록만 인정 (동일 회사/사번)
   const key = company + "/" + employeeId;
   const prev = recordSet.get(key);
@@ -142,3 +145,4 @@ app.get('/api/ranking', async (req, res) => {
 // ------ [6] 서버 시작 ------
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`✅ API server on http://localhost:${PORT}`));
+
