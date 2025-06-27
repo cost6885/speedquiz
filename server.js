@@ -100,7 +100,7 @@ app.post('/api/submit', async (req, res) => {
   // --- 5. 구글 스프레드시트에 저장 (실제 점수/시간만!) ---
   try {
     const gsRes = await axios.post(
-      "https://script.google.com/macros/s/AKfycbzRfrffVsLeUdwTqFx38pfv_sOFJzEaDd-LHDCPwCh3BsdufU0sqT_hI9K5HLtJHOQb8g/exec",
+      "https://script.google.com/macros/s/AKfycby5BTGBtQqnf3axS7KuEh0BVgk4Icm4wXTy3eB1fTuizhpqgvPzcO5Tq-PLwZregFVRWw/exec",
       { company, employeeId, name, timeTaken: totalTime, correctCount },
       { headers: { "Content-Type": "text/plain;charset=utf-8" } }
     );
@@ -121,7 +121,7 @@ app.post('/api/submit', async (req, res) => {
 // ------ [5] 랭킹 API (구글 Apps Script와 연동) ------
 app.get('/api/ranking', async (req, res) => {
   try {
-    const url = "https://script.google.com/macros/s/AKfycbzRfrffVsLeUdwTqFx38pfv_sOFJzEaDd-LHDCPwCh3BsdufU0sqT_hI9K5HLtJHOQb8g/exec?type=ranking";
+    const url = "https://script.google.com/macros/s/AKfycby5BTGBtQqnf3axS7KuEh0BVgk4Icm4wXTy3eB1fTuizhpqgvPzcO5Tq-PLwZregFVRWw/exec?type=ranking";
     const gsRes = await axios.get(url);
     res.json(gsRes.data);
   } catch (err) {
