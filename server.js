@@ -4,66 +4,30 @@ const axios = require('axios');
 const cors = require('cors');
 const app = express();
 
-
 app.use(express.json());
 app.use(cors());
 
-// 원본 body 데이터를 JSON 파싱 이후 찍기 (순서 중요!)
-app.use((req, res, next) => {
-  console.log("🔍 파싱된 req.body 데이터:", req.body);  // ✅ JSON 파싱 후의 body
-  next();
-});
+// ------ [임시 IP 추적용] ------
+const ipMap = new Map(); // key: ip, value: [timestamp,...]
 
-
-// ------ [1] 퀴즈 데이터 (실제 출제와 동일하게! 바꿔서 사용) ------
+// ------ [1] 퀴즈 데이터 ------
 const QUIZ_PROBLEMS = [
-  {
-    word: "보코더",
-    accepts: ["보코더", "vocoder"],
-  },
-  {
-    word: "오디오북",
-    accepts: ["오디오북", "audiobook"],
-  },
-  {
-    word: "초분광",
-    accepts: ["초분광", "hyperspectral"],
-  },
-  {
-    word: "QR코드",
-    accepts: ["qr코드", "qr", "qr code", "QRCode", "큐알", "큐알코드"],
-  },
-  {
-    word: "iot",
-    accepts: ["iot", "아이오티", "IOT"],
-  },
-  {
-    word: "tts",
-    accepts: ["tts", "티티에스", "TTS"],
-  },
-  {
-    word: "라이다",
-    accepts: ["라이다", "lidar"],
-  },
-  {
-    word: "멀티모달",
-    accepts: ["멀티모달", "multimodal"],
-  },
-  {
-    word: "로보택시",
-    accepts: ["로보택시", "robotaxi"],
-  },
-  {
-    word: "디지털트윈",
-    accepts: ["디지털트윈", "digitaltwin", "digital twin"],
-  },
+  { word: "보코더", accepts: ["보코더", "vocoder"] },
+  { word: "오디오북", accepts: ["오디오북", "audiobook"] },
+  { word: "초분광", accepts: ["초분광", "hyperspectral"] },
+  { word: "QR코드", accepts: ["qr코드", "qr", "qr code", "QRCode", "큐알", "큐알코드"] },
+  { word: "iot", accepts: ["iot", "아이오티", "IOT"] },
+  { word: "tts", accepts: ["tts", "티티에스", "TTS"] },
+  { word: "라이다", accepts: ["라이다", "lidar"] },
+  { word: "멀티모달", accepts: ["멀티모달", "multimodal"] },
+  { word: "로보택시", accepts: ["로보택시", "robotaxi"] },
+  { word: "디지털트윈", accepts: ["디지털트윈", "digitaltwin", "digital twin"] },
 ];
 
-
-// ------ [2] 중복 제출 체크용 (실서비스는 DB 사용) ------
+// ------ [2] 중복 제출 체크용 ------
 const recordSet = new Map(); // key: "회사/사번"  value: {time, ...}
 
-// ------ [3] 유틸: 정답 비교 ------
+// ------ [3] 정답 비교 ------
 function checkCorrect(userInput, accepts) {
   const norm = (s) => (s || "").replace(/\s+/g, "").toLowerCase();
   return accepts.some(ans => norm(ans) === norm(userInput));
@@ -71,15 +35,15 @@ function checkCorrect(userInput, accepts) {
 
 // ------ [4] 제출 API ------
 app.post('/api/submit', async (req, res) => {
-  console.log("[submit] 받은 페이로드:", req.body); // 👈 여기 추가!
+  console.log("[submit] 받은 페이로드:", req.body);
   const { company, employeeId, name, quizResults, startTime, endTime } = req.body;
 
-  // --- 1. 필드체크 ---
+  // 1. 필드체크
   if (!company || !employeeId || !name || !Array.isArray(quizResults) || !startTime || !endTime) {
     return res.status(400).json({ status: "error", message: "누락 필드" });
   }
 
-  // --- 2. 실제 정답 채점 ---
+  // 2. 정답 채점
   let correctCount = 0;
   for (let i = 0; i < QUIZ_PROBLEMS.length; i++) {
     const prob = QUIZ_PROBLEMS[i];
@@ -87,28 +51,71 @@ app.post('/api/submit', async (req, res) => {
     if (checkCorrect(userAns, prob.accepts)) correctCount++;
   }
 
-  // --- 3. 소요시간 산출(백엔드에서만 신뢰) ---
-  const totalTime = ((endTime - startTime) / 1000).toFixed(2);
+  // 3. 소요시간 산출
+  const totalTime = ((endTime - startTime) / 1000);
+  const totalTimeStr = totalTime.toFixed(2);
 
-  // --- 4. 최고기록만 인정 (동일 회사/사번) ---
-  const key = company + "/" + employeeId;
-  const prev = recordSet.get(key);
-  if (!prev || Number(prev.time) > Number(totalTime)) {
-    recordSet.set(key, { company, employeeId, name, time: totalTime, correct: correctCount });
+  // 4-1. 비정상적으로 빠른 기록 차단
+  const MIN_TIME_SEC = 10;
+  if (totalTime < MIN_TIME_SEC) {
+    return res.status(400).json({
+      status: "error",
+      message: "비정상적으로 빠른 기록입니다. 사람이 입력한 기록만 인정됩니다.",
+    });
   }
 
-  // --- 5. 구글 스프레드시트에 저장 (실제 점수/시간만!) ---
+  // 4-2. 동일 IP 과도한 응모 차단 (10분 5회 이상)
+  const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const now = Date.now();
+  if (!ipMap.has(userIp)) ipMap.set(userIp, []);
+  ipMap.get(userIp).push(now);
+  const recent = ipMap.get(userIp).filter(ts => now - ts < 10 * 60 * 1000);
+  if (recent.length > 5) {
+    return res.status(400).json({
+      status: "error",
+      message: "동일 IP에서 너무 자주 응모하고 있습니다. 잠시 후 다시 시도하세요.",
+    });
+  }
+  ipMap.set(userIp, recent);
+
+  // 4-3. User-Agent 자동화 탐지
+  const ua = req.headers['user-agent'] || "";
+  if (/selenium|headless|webdriver|python|phantomjs|puppeteer/i.test(ua)) {
+    return res.status(400).json({
+      status: "error",
+      message: "자동화 브라우저로 의심됩니다.",
+    });
+  }
+
+  // 4-4. 데이터 무결성 체크
+  if (quizResults.length !== QUIZ_PROBLEMS.length) {
+    return res.status(400).json({ status: "error", message: "정상적인 응답이 아닙니다." });
+  }
+  for (const a of quizResults) {
+    if ((a.userInput || "").length < 2) {
+      return res.status(400).json({ status: "error", message: "비정상 응답(답이 너무 짧음)" });
+    }
+  }
+
+  // 5. 최고기록만 인정 (동일 회사/사번)
+  const key = company + "/" + employeeId;
+  const prev = recordSet.get(key);
+  if (!prev || Number(prev.time) > Number(totalTimeStr)) {
+    recordSet.set(key, { company, employeeId, name, time: totalTimeStr, correct: correctCount });
+  }
+
+  // 6. 구글 시트 저장
   try {
     const gsRes = await axios.post(
       "https://script.google.com/macros/s/AKfycby5BTGBtQqnf3axS7KuEh0BVgk4Icm4wXTy3eB1fTuizhpqgvPzcO5Tq-PLwZregFVRWw/exec",
-      { company, employeeId, name, timeTaken: totalTime, correctCount },
+      { company, employeeId, name, timeTaken: totalTimeStr, correctCount },
       { headers: { "Content-Type": "text/plain;charset=utf-8" } }
     );
     res.json({
       status: "success",
       message: "기록 저장 성공!",
       correctCount,
-      totalTime,
+      totalTime: totalTimeStr,
     });
   } catch (err) {
     res.status(500).json({
@@ -118,7 +125,7 @@ app.post('/api/submit', async (req, res) => {
   }
 });
 
-// ------ [5] 랭킹 API (구글 Apps Script와 연동) ------
+// ------ [5] 랭킹 API ------
 app.get('/api/ranking', async (req, res) => {
   try {
     const url = "https://script.google.com/macros/s/AKfycby5BTGBtQqnf3axS7KuEh0BVgk4Icm4wXTy3eB1fTuizhpqgvPzcO5Tq-PLwZregFVRWw/exec?type=ranking";
@@ -135,4 +142,3 @@ app.get('/api/ranking', async (req, res) => {
 // ------ [6] 서버 시작 ------
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`✅ API server on http://localhost:${PORT}`));
-
