@@ -101,13 +101,34 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
 
       <div className="input-area">
         <input
-          ref={inputRef}
-          value={userInput}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder="정답을 입력하세요"
-          className="quiz-input"
-        />
+  ref={inputRef}
+  value={userInput}
+  onChange={handleInput}
+  onKeyDown={(e) => {
+    // 붙여넣기 방지 (Ctrl+V, Cmd+V)
+    if ((e.ctrlKey || e.metaKey) && ['v', 'V', 'c', 'C', 'x', 'X', 'a', 'A'].includes(e.key)) {
+      e.preventDefault();
+      // 원하는 경우 안내 메시지: setHintMsg("붙여넣기, 복사, 잘라내기, 전체선택은 불가합니다!");
+      return;
+    }
+    handleKeyDown(e);
+  }}
+  onPaste={e => {
+    e.preventDefault();
+    setHintMsg("붙여넣기는 사용할 수 없습니다!");
+  }}
+  onCopy={e => {
+    e.preventDefault();
+    // setHintMsg("복사 금지!");
+  }}
+  onCut={e => {
+    e.preventDefault();
+    // setHintMsg("잘라내기 금지!");
+  }}
+  placeholder="정답을 입력하세요"
+  className="quiz-input"
+/>
+
         <button className="quiz-btn" onClick={handleNext}>
           {index + 1 === quizList.length ? "제출" : "다음"}
         </button>
