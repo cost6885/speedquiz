@@ -2,10 +2,13 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const svgCaptcha = require('svg-captcha');
+const cookieParser = require('cookie-parser');
 const app = express();
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
+app.use(cookieParser());
 
 // ------ [임시 IP/UA 추적용] ------
 const ipMap = new Map();      // key: ip, value: [timestamp,...]
@@ -25,6 +28,32 @@ const QUIZ_PROBLEMS = [
   { word: "디지털트윈", accepts: ["디지털트윈", "digitaltwin", "digital twin"] },
 ];
 
+// ------ [캡차 이미지 발급 API] ------
+app.get('/api/captcha', (req, res) => {
+  const captcha = svgCaptcha.create({
+    noise: 3,
+    color: true,
+    width: 130,
+    height: 44,
+    fontSize: 48,
+    ignoreChars: '0o1ilI'
+  });
+  res.cookie('captcha_code', captcha.text, { httpOnly: true, maxAge: 3 * 60 * 1000 });
+  res.type('svg');
+  res.send(captcha.data);
+});
+
+// ------ [캡차 검증 API] ------
+app.post('/api/verify-captcha', (req, res) => {
+  const userInput = (req.body.value || '').trim().toLowerCase();
+  const code = (req.cookies.captcha_code || '').trim().toLowerCase();
+  if (userInput && code && userInput === code) {
+    res.json({ success: true });
+  } else {
+    res.json({ success: false });
+  }
+});
+
 // ------ [정답 비교] ------
 function checkCorrect(userInput, accepts) {
   const norm = (s) => (s || "").replace(/\s+/g, "").toLowerCase();
@@ -34,11 +63,23 @@ function checkCorrect(userInput, accepts) {
 // ------ [제출 API] ------
 app.post('/api/submit', async (req, res) => {
   console.log("[submit] 받은 페이로드:", req.body);
-  const { company, employeeId, name, quizResults, startTime, endTime, captchaValue } = req.body;
+  const { company, employeeId, name, quizResults, startTime, endTime, captchaValue, requireCaptcha } = req.body;
 
   // 1. 필드체크
   if (!company || !employeeId || !name || !Array.isArray(quizResults) || !startTime || !endTime) {
     return res.status(400).json({ status: "error", message: "누락 필드" });
+  }
+
+  // ----- [캡차 검증, 프론트에서 requireCaptcha: true로 보내는 경우만 적용] -----
+  if (requireCaptcha) {
+    const userInput = (captchaValue || '').trim().toLowerCase();
+    const code = (req.cookies.captcha_code || '').trim().toLowerCase();
+    if (!userInput || !code || userInput !== code) {
+      return res.status(400).json({
+        status: "error",
+        message: "캡차 인증이 실패했습니다. 다시 시도하세요."
+      });
+    }
   }
 
   // 2. 정답 채점
@@ -95,11 +136,6 @@ app.post('/api/submit', async (req, res) => {
     }
   }
 
-  // 4-5. (옵션) 캡차 검증: 실제 서비스에서는 별도의 세션 등에서 captcha 검증 필요
-  if (!validateCaptcha(captchaValue, userIp)) {
-    return res.status(400).json({ status: "error", message: "캡차 검증 실패" });
-  }
-
   // 5. 최고기록만 인정 (동일 회사/사번)
   const key = company + "/" + employeeId;
   const prev = recordSet.get(key);
@@ -145,4 +181,3 @@ app.get('/api/ranking', async (req, res) => {
 // ------ [6] 서버 시작 ------
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`✅ API server on http://localhost:${PORT}`));
-
