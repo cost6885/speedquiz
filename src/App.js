@@ -20,7 +20,18 @@ const App = () => {
   const [showRanking, setShowRanking] = useState(false);
   const [showPrize, setShowPrize] = useState(false); // 상품 보드 오픈 여부
 
-  const handleStart = () => setStep("quiz");
+  const handleStart = async () => {
+  try {    
+    await fetch("/api/count", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },      
+      body: JSON.stringify({}),
+    });
+  } catch (e) {    
+  }
+  setStep("quiz");
+};
+
 
   // TypingQuiz에서 index 바뀔 때마다 currentIdx 세팅
   const handleFinish = (userAnswers, start, lastIdx) => {
