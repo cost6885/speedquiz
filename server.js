@@ -60,6 +60,28 @@ function checkCorrect(userInput, accepts) {
   return accepts.some(ans => norm(ans) === norm(userInput));
 }
 
+
+app.post('/api/count', async (req, res) => {
+  // (1) 유저 IP 추적 (간단 방지책)
+  const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  try {
+    const gsRes = await axios.post(
+      "https://script.google.com/macros/s/AKfycbxugcaDUvUwjLShfWLMbsNnwj5_0kW_qGj__y4Exu7gQXunZXxHaMXCYYXRzxMGBx4jTA/exec",
+      { ip: userIp },
+      { headers: { "Content-Type": "application/json" } }
+    );
+    res.json(gsRes.data);
+  } catch (err) {
+    res.status(500).json({
+      status: "error",
+      message: "구글 스크립트 에러: " + (err.response?.data?.message || err.message),
+    });
+  }
+});
+
+
+
+
 // ------ [제출 API] ------
 app.post('/api/submit', async (req, res) => {
   console.log("[submit] 받은 페이로드:", req.body);
