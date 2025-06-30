@@ -177,19 +177,16 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
       // --- [1초 이내 연속통과 로직] ---
       const now = Date.now();
       answerTimes.current.push(now);
-      if (answerTimes.current.length > 3)
+      if (answerTimes.current.length > 4)
         answerTimes.current.shift();
-      let captchaTriggered = false;
-      if (answerTimes.current.length === 3) {
-        const dt = answerTimes.current[2] - answerTimes.current[0];
-        if (dt <= 3000) { // 3개가 3초 내 = 평균 1초 미만
-          // 캡차 트리거
-          captchaTriggered = true;
+      if (answerTimes.current.length === 4) {
+        const dt = answerTimes.current[3] - answerTimes.current[0];
+        if (dt <= 4000) { 
           setShowCaptcha(true);
           fetchCaptchaImage();
           setHintMsg("자동입력 방지 확인! 캡차를 입력해주세요.");
           setCaptchaInput("");
-          return; // 캡차 성공해야 진행됨!
+          return;
         }
       }
       // ---------------------------
