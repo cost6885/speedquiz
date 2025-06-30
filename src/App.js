@@ -20,18 +20,26 @@ const App = () => {
   const [showRanking, setShowRanking] = useState(false);
   const [showPrize, setShowPrize] = useState(false); // 상품 보드 오픈 여부
 
-  const handleStart = async () => {
-  try {    
-    await fetch("/api/count", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },      
-      body: JSON.stringify({}),
-    });
-  } catch (e) {    
-  }
-  setStep("quiz");
-};
+  // 로딩, 에러 상태 추가!
+  const [isStarting, setIsStarting] = useState(false);
+  const [startError, setStartError] = useState("");
 
+  const handleStart = async () => {
+    setIsStarting(true);
+    setStartError("");
+    try {    
+      await fetch("/api/count", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },      
+        body: JSON.stringify({}),
+      });
+      setStep("quiz");
+    } catch (e) {
+      setStartError("네트워크 오류! 잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsStarting(false);
+    }
+  };
 
   // TypingQuiz에서 index 바뀔 때마다 currentIdx 세팅
   const handleFinish = (userAnswers, start, lastIdx) => {
@@ -76,9 +84,22 @@ const App = () => {
                 </b>
               </p>
             </div>
-            <button className="start-btn" onClick={handleStart}>
-              게임 시작
+            <button
+              className="start-btn"
+              onClick={handleStart}
+              disabled={isStarting}
+              style={{
+                opacity: isStarting ? 0.7 : 1,
+                cursor: isStarting ? "wait" : "pointer"
+              }}
+            >
+              {isStarting ? "로딩중입니다..." : "게임 시작"}
             </button>
+            {startError && (
+              <div style={{ color: "#d00", marginTop: 12, fontWeight: 600 }}>
+                {startError}
+              </div>
+            )}
             {/* ===== 디바이더 추가!! ===== */}
             <div
               style={{
@@ -99,14 +120,14 @@ const App = () => {
                 display: "flex",
                 gap: 16,
                 justifyContent: "center",
-                margin: "0px 0 0", // 설명카드 아래로 좀 띄워줌 (위치 맘대로 조절)
+                margin: "0px 0 0",
               }}
             >
               <button
                 className="ranking-btn"
                 style={{
                   fontWeight: 700,
-                  fontSize: 20, // ← 더 큼
+                  fontSize: 20,
                   minWidth: 160,
                   height: 50,
                   border: "2px solid #0099ff",
@@ -116,6 +137,7 @@ const App = () => {
                   cursor: "pointer",
                 }}
                 onClick={() => setShowRanking(true)}
+                disabled={isStarting}
               >
                 🏆 랭킹 보드
               </button>
@@ -123,7 +145,7 @@ const App = () => {
                 className="prize-btn"
                 style={{
                   fontWeight: 700,
-                  fontSize: 20, // ← 더 큼
+                  fontSize: 20,
                   minWidth: 160,
                   height: 50,
                   border: "2px solid #ff8844",
@@ -133,6 +155,7 @@ const App = () => {
                   cursor: "pointer",
                 }}
                 onClick={() => setShowPrize(true)}
+                disabled={isStarting}
               >
                 🎁 이벤트 상품
               </button>
@@ -156,7 +179,7 @@ const App = () => {
           />
         )}
       </div>
-      <RankingBoard open={showRanking} onClose={() => setShowRanking(false)} />;
+      <RankingBoard open={showRanking} onClose={() => setShowRanking(false)} />
       <EventPrizeBoard open={showPrize} onClose={() => setShowPrize(false)} />
     </>
   );
