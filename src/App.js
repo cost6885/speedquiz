@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import TypingQuiz from "./components/TypingQuiz";
 import QuizResult from "./components/QuizResult";
-import FallingBgLayer from "./components/FallingBgLayer"; // 추가!
+import FallingBgLayer from "./components/FallingBgLayer";
 import WORDS from "./data/words";
 import "./styles.css";
 import RankingBoard from "./components/RankingBoard";
-import EventPrizeBoard from "./components/EventPrizeBoard"; // 추가
+import EventPrizeBoard from "./components/EventPrizeBoard";
+import HearthstonePortalLoading from "./components/HearthstonePortalLoading";
 
 function shuffle(array) {
   return array.slice().sort(() => Math.random() - 0.5);
@@ -16,38 +17,43 @@ const App = () => {
   const [quizList] = useState(shuffle(WORDS));
   const [result, setResult] = useState(null);
   const [startTime, setStartTime] = useState(null);
-  const [currentIdx, setCurrentIdx] = useState(0); // 현재 문제 번호
+  const [currentIdx, setCurrentIdx] = useState(0);
   const [showRanking, setShowRanking] = useState(false);
-  const [showPrize, setShowPrize] = useState(false); // 상품 보드 오픈 여부
+  const [showPrize, setShowPrize] = useState(false);
 
-  // 로딩, 에러 상태 추가!
+  // 로딩, 에러 상태
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState("");
 
-  const handleStart = async () => {
+  // 게임 시작 버튼 → api 요청 → 성공시 애니 1.5초 보여주고 퀴즈 화면 진입
+  const startGame = async () => {
     setIsStarting(true);
     setStartError("");
-    try {    
+    try {
       await fetch("/api/count", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },      
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      setStep("quiz");
+      // fetch 완료 → 1.5초 하스스톤 포탈 애니 보여주기
+      setTimeout(() => {
+        setStep("quiz");
+        setIsStarting(false);
+      }, 1500);
     } catch (e) {
       setStartError("네트워크 오류! 잠시 후 다시 시도해주세요.");
-    } finally {
       setIsStarting(false);
     }
   };
 
-  // TypingQuiz에서 index 바뀔 때마다 currentIdx 세팅
+  // 퀴즈 끝나면 result로
   const handleFinish = (userAnswers, start, lastIdx) => {
     setResult(userAnswers);
     setStartTime(start);
     setStep("result");
   };
 
+  // 다시하기
   const handleRestart = () => {
     setStep("intro");
     setResult(null);
@@ -57,10 +63,18 @@ const App = () => {
 
   return (
     <>
+      {isStarting && (
+        <HearthstonePortalLoading
+          onEnd={() => {
+            setStep("quiz");
+            setIsStarting(false);
+          }}
+        />
+      )}
       {step === "quiz" && (
         <FallingBgLayer answerWord={quizList[currentIdx]?.word} />
       )}
-      <div className="app">
+      <div className="app" style={isStarting ? { filter: "blur(1.2px)", pointerEvents: "none" } : {}}>
         {step === "intro" && (
           <div className="intro">
             <h1 className="title" style={{ marginBottom: 18 }}>
@@ -86,7 +100,7 @@ const App = () => {
             </div>
             <button
               className="start-btn"
-              onClick={handleStart}
+              onClick={startGame}
               disabled={isStarting}
               style={{
                 opacity: isStarting ? 0.7 : 1,
@@ -114,7 +128,6 @@ const App = () => {
               }}
             />
             {/* ======================== */}
-
             <div
               style={{
                 display: "flex",
