@@ -128,7 +128,7 @@ app.post('/api/submit', async (req, res) => {
   if (totalTime < MIN_TIME_SEC) {
     return res.status(400).json({
       status: "error",
-      message: "비정상적으로 빠른 기록입니다. 사람이 입력한 기록만 인정됩니다.",
+      message: "비정상적으로 빠른 기록입니다. 사람이 입력한 기록만 인정됩니다. 직접 타이핑 하신 기록이면 02-820-8269로 연락주세요.",
     });
   }
 
