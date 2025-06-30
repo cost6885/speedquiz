@@ -61,13 +61,14 @@ function checkCorrect(userInput, accepts) {
 }
 
 
+
 app.post('/api/count', async (req, res) => {
-  // (1) 유저 IP 추적 (간단 방지책)
-  const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  // 유저 IP 추적
+  const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || "unknown";
   try {
     const gsRes = await axios.post(
       "https://script.google.com/macros/s/AKfycbxugcaDUvUwjLShfWLMbsNnwj5_0kW_qGj__y4Exu7gQXunZXxHaMXCYYXRzxMGBx4jTA/exec",
-      { ip: userIp },
+      { ip: userIp }, // ← 반드시 ip를 담아서 보냄!
       { headers: { "Content-Type": "application/json" } }
     );
     res.json(gsRes.data);
