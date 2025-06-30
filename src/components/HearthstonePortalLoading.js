@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 
 // 효과음: 공개 무료
-const portalSound =
-  "https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa8b18.mp3";
-const swooshSound =
-  "https://cdn.pixabay.com/audio/2022/07/26/audio_1276262cbe.mp3"; // swoosh
+const portalSound = process.env.PUBLIC_URL + "/data/Portal.mp3";
+const swooshSound = process.env.PUBLIC_URL + "/data/swoosh.mp3";
+
 
 // 카드에 쓸 이미지 or 텍스트
 const CARD_IMAGE =
