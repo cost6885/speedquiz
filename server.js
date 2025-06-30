@@ -175,8 +175,8 @@ app.post('/api/submit', async (req, res) => {
   // 6. 구글 시트 저장
   try {
     const gsRes = await axios.post(
-      "https://script.google.com/macros/s/AKfycby5BTGBtQqnf3axS7KuEh0BVgk4Icm4wXTy3eB1fTuizhpqgvPzcO5Tq-PLwZregFVRWw/exec",
-      { company, employeeId, name, timeTaken: totalTimeStr, correctCount },
+      "https://script.google.com/macros/s/AKfycbxPqEAp3CSOdJ_cwUouspkU-WbTM0xx0C1ZhFRA2nJYsj0xBuMvXr0CeWmkhnHdGbgunQ/exec",
+      { company, employeeId, name, timeTaken: totalTimeStr, correctCount, ip: userIp },
       { headers: { "Content-Type": "text/plain;charset=utf-8" } }
     );
     res.json({
@@ -196,7 +196,7 @@ app.post('/api/submit', async (req, res) => {
 // ------ [5] 랭킹 API ------
 app.get('/api/ranking', async (req, res) => {
   try {
-    const url = "https://script.google.com/macros/s/AKfycby5BTGBtQqnf3axS7KuEh0BVgk4Icm4wXTy3eB1fTuizhpqgvPzcO5Tq-PLwZregFVRWw/exec?type=ranking";
+    const url = "https://script.google.com/macros/s/AKfycbxPqEAp3CSOdJ_cwUouspkU-WbTM0xx0C1ZhFRA2nJYsj0xBuMvXr0CeWmkhnHdGbgunQ/exec?type=ranking";
     const gsRes = await axios.get(url);
     res.json(gsRes.data);
   } catch (err) {
