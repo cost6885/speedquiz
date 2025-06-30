@@ -171,9 +171,20 @@ const QuizResult = ({ results, startTime, onRestart }) => {
             참여해주셔서 감사합니다!
           </span>
         </div>
-        <button style={buttonGhost} onClick={onRestart}>
-          다시하기
-        </button>
+        <button
+  style={buttonGhost}
+  onClick={async () => {
+    try {
+      await fetch("/api/captcha/reset", { method: "GET" });
+    } catch (e) {
+      // 네트워크 장애 등 무시
+    }
+    onRestart();
+  }}
+  disabled={isSubmitting}
+>
+  다시하기
+</button>
       </div>
     );
 
