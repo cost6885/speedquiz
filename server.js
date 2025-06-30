@@ -54,6 +54,15 @@ app.post('/api/verify-captcha', (req, res) => {
   }
 });
 
+
+// ------ [캡차 쿠키 리셋 API] ------
+app.get('/api/captcha/reset', (req, res) => {
+  // 쿠키 삭제(만료시킴)
+  res.clearCookie('captcha_code');
+  res.json({ success: true, message: "캡차 쿠키 리셋됨" });
+});
+
+
 // ------ [정답 비교] ------
 function checkCorrect(userInput, accepts) {
   const norm = (s) => (s || "").replace(/\s+/g, "").toLowerCase();
