@@ -75,6 +75,8 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
   const inputRef = useRef(null);
   const [showQuestion, setShowQuestion] = useState(true);
   const [userInputKeyCount, setUserInputKeyCount] = useState(0);
+  const [keyLog, setKeyLog] = useState([]);
+
 
   // 👇 캡차 관련 상태
   const [showCaptcha, setShowCaptcha] = useState(false);
@@ -86,6 +88,31 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
   // 👇 1초 이내 연속통과 감지용(마지막 3개 타임스탬프 기록)
   const answerTimes = useRef([]);
 
+
+  const handleInputKeyDown = (e) => {
+    // 실제 타이핑(한 글자 이상)
+    if (e.key.length === 1) {
+      setKeyLog((prev) => [...prev, e.key]);
+    } else if (
+      ["Backspace", "Delete", "Enter", "Tab"].includes(e.key)
+    ) {
+      setKeyLog((prev) => [...prev, `[${e.key}]`]);
+    }
+    // 붙여넣기/복사/잘라내기/전체선택 막기
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      ["v", "V", "c", "C", "x", "X", "a", "A"].includes(e.key)
+    ) {
+      e.preventDefault();
+      setHintMsg("붙여넣기는 사용할 수 없습니다!");
+      return;
+    }
+    // 기존 엔터 처리
+    if (e.key === "Enter") handleNext();
+  };
+
+
+  
   // 타이핑시 실제 "자모수" 카운트!
   useEffect(() => {
     setUserInputKeyCount(
@@ -197,6 +224,7 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
           userInput,
           correct: true,
           time: now,
+          keyLog: [...keyLog],  // 여기!
         },
       ]);
       setHintMsg("");
@@ -222,15 +250,6 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
     setHintMsg("오답입니다! 다시 시도해보세요 😅");
   };
 
-  // 엔터키도 동일하게
-  const handleKeyDown = (e) => {
-    // 붙여넣기 방지
-    if ((e.ctrlKey || e.metaKey) && ['v', 'V', 'c', 'C', 'x', 'X', 'a', 'A'].includes(e.key)) {
-      e.preventDefault();
-      return;
-    }
-    if (e.key === "Enter") handleNext();
-  };
 
   return (
     <div className="quiz-box">
@@ -244,7 +263,7 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
           ref={inputRef}
           value={userInput}
           onChange={handleInput}
-          onKeyDown={handleKeyDown}
+          onKeyDown={handleInputKeyDown} // 여기만 수정!
           onPaste={e => {
             e.preventDefault();
             setHintMsg("붙여넣기는 사용할 수 없습니다!");
