@@ -60,11 +60,17 @@ function checkCorrect(userInput, accepts) {
   return accepts.some(ans => norm(ans) === norm(userInput));
 }
 
+function getClientIp(req) {
+  let ip = req.headers['x-forwarded-for'];
+  if (ip) ip = ip.split(',')[0].trim();
+  else ip = req.socket.remoteAddress;
+  return ip;
+}
 
 
 app.post('/api/count', async (req, res) => {
   // 유저 IP 추적
-  const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || "unknown";
+  const userIp = getClientIp(req);
   try {
     const gsRes = await axios.post(
       "https://script.google.com/macros/s/AKfycbxugcaDUvUwjLShfWLMbsNnwj5_0kW_qGj__y4Exu7gQXunZXxHaMXCYYXRzxMGBx4jTA/exec",
