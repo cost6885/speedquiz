@@ -1,89 +1,113 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 
-// 효과음: 공개 무료
 const portalSound = process.env.PUBLIC_URL + "/data/Portal.mp3";
 const swooshSound = process.env.PUBLIC_URL + "/data/swoosh.mp3";
-
-
-// 카드에 쓸 이미지 or 텍스트
 const CARD_IMAGE =
   "https://www.hushwish.com/wp-content/uploads/2020/10/emo_gang_001.gif";
 
 const keyframes = `
-@keyframes portal-spin {
-  0% { transform: rotate(0deg) scale(1.01);}
-  100% { transform: rotate(360deg) scale(1.01);}
-}
-@keyframes portal-zoom {
-  0% { transform: scale(1); opacity: 0.05;}
-  70% { transform: scale(1.18); opacity: 1;}
-  100% { transform: scale(1.04); opacity: 1;}
-}
-@keyframes portal-glow {
-  0% { box-shadow: 0 0 100px 35px #fff8; }
-  100% { box-shadow: 0 0 120px 70px #96fcffc9; }
-}
-@keyframes swirl-pulse {
-  0%, 100% { opacity: 1;}
-  35% { opacity: 0.7;}
-  65% { opacity: 0.18;}
+@keyframes swirl-rotate {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
 }
 @keyframes card-float {
-  0%   { transform: translateY(0) scale(1); }
-  80%  { transform: translateY(-30px) scale(1.07);}
-  100% { transform: translateY(-30px) scale(1.07);}
+  0%   { transform: translateY(-40px) scale(1.08) rotate(-9deg);}
+  100% { transform: translateY(-70px) scale(1.17) rotate(-13deg);}
 }
 @keyframes card-suck {
-  0% { opacity:1; transform: translateY(-30px) scale(1.07) rotate(0deg);}
-  60% { opacity:1; }
-  85% { opacity:.95; }
-  100% { opacity: 0; transform: translateY(-10px) scale(0.05) rotate(540deg);}
+  0%   { opacity:1; transform: translateY(-70px) scale(1.17) rotate(-13deg);}
+  70%  { opacity:.98; filter: brightness(1.2);}
+  100% { opacity: 0; transform: translateY(-30px) scale(0.09) rotate(460deg) skewX(38deg); filter: blur(11px) brightness(2);}
 }
 `;
 
-function swirlParticle(i, mainColor, secondaryColor) {
-  // 입자 수 더 많고 위치 랜덤+회전
-  const theta = (i / 20) * 2 * Math.PI;
-  const r = 88 + 32 * Math.sin(i * 2.13);
-  return {
-    left: `${120 + r * Math.cos(theta)}px`,
-    top: `${120 + r * Math.sin(theta)}px`,
-    width: 18 + (i % 5) * 7,
-    height: 14 + (i % 4) * 5,
-    background: `radial-gradient(ellipse at 40% 60%, ${mainColor} 70%, ${secondaryColor} 90%, transparent 100%)`,
-    position: "absolute",
-    borderRadius: "50%",
-    filter: "blur(2.5px) brightness(1.6)",
-    animation: `swirl-pulse 1.5s cubic-bezier(.7,0,.7,1) infinite both`,
-    animationDelay: `${i * 0.07}s`,
-    zIndex: 3 + (i % 2),
-    opacity: 0.7 + Math.random() * 0.25,
-  };
+function FractalAura({ size = 520 }) {
+  // SVG: fractalNoise를 이용한 irregular smoke aura!
+  return (
+    <svg
+      width={size}
+      height={size}
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        pointerEvents: "none",
+        zIndex: 2,
+      }}
+    >
+      <defs>
+        {/* 불규칙한 오로라(연기) 필터 */}
+        <filter id="cloudyAura" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.022 0.06"
+            numOctaves="3"
+            seed="10"
+            result="noise"
+          />
+          <feDisplacementMap
+            in2="noise"
+            in="SourceGraphic"
+            scale="40"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+          <feGaussianBlur stdDeviation="9" result="blur" />
+          <feColorMatrix
+            in="blur"
+            type="matrix"
+            values="
+              1 0 0 0 0
+              0 1 0 0 0
+              0 0 1 0 0
+              0 0 0 1.7 0"
+          />
+        </filter>
+      </defs>
+      {/* 불규칙 연기 원 */}
+      <ellipse
+        cx={size / 2}
+        cy={size / 2}
+        rx={size * 0.47}
+        ry={size * 0.47}
+        fill="#fff"
+        opacity={0.39}
+        filter="url(#cloudyAura)"
+      />
+      {/* 중앙 Glow 좀 더 */}
+      <ellipse
+        cx={size / 2}
+        cy={size / 2}
+        rx={size * 0.35}
+        ry={size * 0.35}
+        fill="#fff"
+        opacity={0.11}
+        style={{ filter: "blur(37px)" }}
+      />
+    </svg>
+  );
 }
 
 const HearthstonePortalLoading = ({ onEnd }) => {
-  const [cardAnim, setCardAnim] = useState("float"); // float→suck
+  const [cardAnim, setCardAnim] = React.useState("float");
   const playedSuck = useRef(false);
 
   useEffect(() => {
-    // 사운드: 포탈 효과
     const portal = new Audio(portalSound);
-    portal.volume = 0.85;
+    portal.volume = 0.9;
     portal.play();
-    // 1.1초 후 카드 빨려들기(swoosh)
     const t1 = setTimeout(() => {
       setCardAnim("suck");
       if (!playedSuck.current) {
         playedSuck.current = true;
         const swoosh = new Audio(swooshSound);
-        swoosh.volume = 0.9;
+        swoosh.volume = 1;
         swoosh.play();
       }
-    }, 1100);
-    // 1.65초 후 onEnd 콜백 (퀴즈 시작)
+    }, 1200);
     const t2 = setTimeout(() => {
       onEnd && onEnd();
-    }, 1650);
+    }, 1700);
     return () => {
       portal.pause();
       portal.currentTime = 0;
@@ -92,13 +116,6 @@ const HearthstonePortalLoading = ({ onEnd }) => {
       clearTimeout(t2);
     };
   }, [onEnd]);
-
-  // 색상 커스텀!
-  const mainGlow = "#fff2b6";
-  const portalColor = "#38e5ff";
-  const portalShadow = "#57fffe";
-  const swirlMain = "#34f7ff";
-  const swirlSecond = "#bb9fff";
 
   return (
     <div
@@ -109,7 +126,7 @@ const HearthstonePortalLoading = ({ onEnd }) => {
         width: "100vw",
         height: "100vh",
         background:
-          "radial-gradient(ellipse at 52% 54%, #27144a 40%, #092031 100%)",
+          "radial-gradient(ellipse at 53% 51%, #06070b 50%, #191a22 100%)",
         zIndex: 10020,
         display: "flex",
         alignItems: "center",
@@ -118,96 +135,53 @@ const HearthstonePortalLoading = ({ onEnd }) => {
       }}
     >
       <style>{keyframes}</style>
-      {/* 소용돌이+빛+입자 */}
+      {/* ======= 비정형 연기 오라 ======= */}
       <div
         style={{
-          width: 270,
-          height: 270,
-          borderRadius: "50%",
-          background: `radial-gradient(ellipse at 60% 48%, ${portalColor} 29%, #b0ecff 60%, transparent 100%)`,
-          boxShadow: `0 0 120px 40px ${portalShadow}, 0 0 180px 90px #eaffff66, 0 0 140px 38px #85e8ffaa`,
-          border: `8px solid ${mainGlow}`,
+          width: 520,
+          height: 520,
           position: "relative",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          animation: "portal-zoom 1.7s cubic-bezier(.95,1.7,.61,1) forwards",
+          animation: "swirl-rotate 3.9s linear infinite",
         }}
       >
-        {/* 소용돌이 테두리 */}
-        <div
-          style={{
-            position: "absolute",
-            width: 250,
-            height: 250,
-            left: 10,
-            top: 10,
-            borderRadius: "50%",
-            border: `6px solid #fff4`,
-            opacity: 0.8,
-            boxShadow: `0 0 66px 11px ${swirlMain}55`,
-            filter: "blur(1.3px)",
-            animation: "portal-spin 1.1s linear infinite",
-            zIndex: 2,
-          }}
-        />
-        {/* 휘몰아치는 입자 (20개!) */}
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div key={i} style={swirlParticle(i, swirlMain, swirlSecond)} />
-        ))}
-        {/* 포탈 중심 Glow */}
-        <div
-          style={{
-            width: 140,
-            height: 140,
-            borderRadius: "50%",
-            background:
-              "radial-gradient(ellipse at 55% 50%, #fff 60%, #edffffbb 100%, transparent 120%)",
-            boxShadow: "0 0 110px 38px #f7fbffd5, 0 0 180px 40px #b0ecffaa",
-            border: "6px solid #f3fdff",
-            animation:
-              "portal-glow 1.7s cubic-bezier(.65,0,.85,1) infinite alternate",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "absolute",
-            left: 65,
-            top: 65,
-            zIndex: 3,
-          }}
-        >
-          {/* 중앙 빛 */}
-          <div
-            style={{
-              width: 68,
-              height: 68,
-              borderRadius: "50%",
-              background:
-                "radial-gradient(circle at 45% 52%, #fff, #effcff 77%, transparent 100%)",
-              opacity: 0.96,
-              boxShadow: "0 0 48px 12px #fff9",
-              zIndex: 4,
-            }}
-          />
-        </div>
-        {/* 💳 카드! (빨려들기) */}
+        <FractalAura size={520} />
+        {/* 중앙 블랙홀 */}
         <div
           style={{
             position: "absolute",
             left: "50%",
             top: "50%",
-            width: 98,
-            height: 136,
-            zIndex: 6,
-            transform: "translate(-50%,-68%)",
-            background: "#222",
-            borderRadius: 14,
-            boxShadow: "0 6px 20px #0339, 0 0 24px #00d6ff99",
+            width: 400,
+            height: 400,
+            background: "#070707",
+            borderRadius: "50%",
+            boxShadow:
+              "0 0 95px 35px #fff8, 0 0 300px 120px #222b, 0 0 220px 56px #eee3",
+            transform: "translate(-50%,-50%)",
+            zIndex: 8,
+          }}
+        />
+        {/* 카드 빨려들기 */}
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            width: 120,
+            height: 170,
+            zIndex: 10,
+            transform: "translate(-50%,-90%)",
+            background: "#18181c",
+            borderRadius: 18,
+            boxShadow: "0 7px 38px #000a, 0 0 32px #fff2",
             overflow: "hidden",
             animation:
               cardAnim === "float"
-                ? "card-float 1.1s cubic-bezier(.7,1.5,.45,.98) forwards"
-                : "card-suck 0.5s cubic-bezier(.1,1.2,.6,1) forwards",
+                ? "card-float 1.3s cubic-bezier(.8,1.4,.45,1) forwards"
+                : "card-suck 0.62s cubic-bezier(.22,1.1,.77,1.0) forwards",
           }}
         >
           <img
@@ -219,6 +193,8 @@ const HearthstonePortalLoading = ({ onEnd }) => {
               display: "block",
               objectFit: "cover",
               borderRadius: 0,
+              filter:
+                "brightness(0.98) grayscale(0.03) drop-shadow(0 0 15px #fff8)",
             }}
           />
         </div>
@@ -232,22 +208,22 @@ const HearthstonePortalLoading = ({ onEnd }) => {
           bottom: "17vh",
           textAlign: "center",
           color: "#fff",
-          fontSize: 36,
+          fontSize: 38,
           fontWeight: 900,
-          textShadow: "0 2px 28px #00e7ff, 0 0 18px #fff, 0 0 16px #ffd80077",
+          textShadow: "0 2px 18px #000, 0 0 12px #fff, 0 0 10px #000a",
           letterSpacing: "0.09em",
           pointerEvents: "none",
           userSelect: "none",
           animation: "fade-in 1s",
+          zIndex: 99999,
         }}
       >
         <span
           style={{
-            background:
-              "linear-gradient(90deg, #fffabf 0%, #45f6ff 60%, #f9ddff 100%)",
+            background: "linear-gradient(90deg, #fff 0%, #aaa 80%, #fff 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-            filter: "drop-shadow(0 2px 10px #d3f2ff77)",
+            filter: "drop-shadow(0 2px 10px #2229)",
           }}
         >
           곧 시작됩니다
