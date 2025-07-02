@@ -162,27 +162,13 @@ app.post('/api/submit', async (req, res) => {
   const totalTimeStr = totalTime.toFixed(2);
 
   // 4-1. 비정상적으로 빠른 기록 차단
-  const MIN_TIME_SEC = 10;
+  const MIN_TIME_SEC = 5;
   if (totalTime < MIN_TIME_SEC) {
     return res.status(400).json({
       status: "error",
       message: "비정상적으로 빠른 기록입니다. 사람이 입력한 기록만 인정됩니다. 직접 타이핑 하신 기록이면 02-820-8269로 연락주세요.",
     });
-  }
-
-  // 4-2. 동일 IP 과도한 응모 차단 (10분 5회 이상)
-  const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-  const now = Date.now();
-  if (!ipMap.has(userIp)) ipMap.set(userIp, []);
-  ipMap.get(userIp).push(now);
-  const recent = ipMap.get(userIp).filter(ts => now - ts < 10 * 60 * 1000);
-  if (recent.length > 5) {
-    return res.status(400).json({
-      status: "error",
-      message: "동일 IP에서 너무 자주 응모하고 있습니다. 잠시 후 다시 시도하세요.",
-    });
-  }
-  ipMap.set(userIp, recent);
+  } 
 
   // 4-3. User-Agent 자동화 탐지
   const ua = req.headers['user-agent'] || "";
