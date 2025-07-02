@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 // 도형 + 컬러
 const SHAPES = [
@@ -8,7 +8,7 @@ const SHAPES = [
   { shape: "◆", color: "#ffb800" },
 ];
 
-// id, type, content, x, y, speed, angle, fadeOut, isAnswer
+// id, type, content, x, y, speed, angle, fadeOut, fadeStartTime
 function makeDrop(answerWord, allowAnswer) {
   const isAnswer = allowAnswer && !!answerWord && Math.random() < 0.4; // 40%확률
   if (isAnswer) {
@@ -22,6 +22,7 @@ function makeDrop(answerWord, allowAnswer) {
       angle: (Math.random() - 0.5) * 60,
       speed: Math.random() * 1.8 + 1.1,
       fadeOut: false,
+      fadeStartTime: null,
     };
   } else {
     const s = SHAPES[Math.floor(Math.random() * SHAPES.length)];
@@ -35,6 +36,7 @@ function makeDrop(answerWord, allowAnswer) {
       angle: (Math.random() - 0.5) * 80,
       speed: Math.random() * 2.1 + 1.1,
       fadeOut: false,
+      fadeStartTime: null,
     };
   }
 }
@@ -43,9 +45,11 @@ export default function FallingBgLayer({ answerWord, round }) {
   const [drops, setDrops] = useState([]);
   const [startTime, setStartTime] = useState(Date.now());
 
+  // 문제(라운드) 바뀔 때마다 리셋
   useEffect(() => {
-    setStartTime(Date.now()); // 문제 바뀔 때마다 타이머 리셋!
-  }, [round, answerWord]); // round는 index, answerWord 등 문제 고유값
+    setStartTime(Date.now());
+    setDrops([]);
+  }, [round, answerWord]);
 
   // 1초마다 도형/정답 무작위 추가
   useEffect(() => {
@@ -58,32 +62,37 @@ export default function FallingBgLayer({ answerWord, round }) {
     return () => clearInterval(intv);
   }, [answerWord, startTime]);
 
-  // ...아래 로직 동일...
+  // 애니메이션: y값 증가, fadeOut처리, 삭제까지 한 번에!
   useEffect(() => {
     let raf;
     function step() {
-      setDrops((prev) =>
-        prev
-          .map((obj) => (obj.fadeOut ? obj : { ...obj, y: obj.y + obj.speed }))
-          .filter((obj) => !obj.fadeOut || obj.y < 110)
-      );
+      setDrops((prev) => {
+        const now = Date.now();
+        // 1. 이동
+        let next = prev.map((obj) => {
+          if (!obj.fadeOut) {
+            const newY = obj.y + obj.speed;
+            // 2. fadeOut 처리
+            if (newY > 92 && !obj.fadeOut) {
+              return { ...obj, y: newY, fadeOut: true, fadeStartTime: now };
+            }
+            return { ...obj, y: newY };
+          }
+          return obj;
+        });
+        // 3. fadeOut 후 1.2초 지나면 삭제
+        next = next.filter(
+          (obj) =>
+            !obj.fadeOut ||
+            (obj.fadeStartTime && now - obj.fadeStartTime < 1200)
+        );
+        return next;
+      });
       raf = requestAnimationFrame(step);
     }
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, []);
-
-  useEffect(() => {
-    setDrops((prev) =>
-      prev.map((obj) =>
-        !obj.fadeOut && obj.y > 92 ? { ...obj, fadeOut: true } : obj
-      )
-    );
-    const t = setTimeout(() => {
-      setDrops((prev) => prev.filter((obj) => !obj.fadeOut));
-    }, 1200);
-    return () => clearTimeout(t);
-  }, [drops]);
 
   return (
     <div className="falling-bg-layer">
