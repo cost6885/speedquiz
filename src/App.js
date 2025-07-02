@@ -74,7 +74,12 @@ const App = () => {
       {step === "quiz" && (
         <FallingBgLayer answerWord={quizList[currentIdx]?.word} />
       )}
-      <div className="app" style={isStarting ? { filter: "blur(1.2px)", pointerEvents: "none" } : {}}>
+      <div
+        className="app"
+        style={
+          isStarting ? { filter: "blur(1.2px)", pointerEvents: "none" } : {}
+        }
+      >
         {step === "intro" && (
           <div className="intro">
             <h1 className="title" style={{ marginBottom: 18 }}>
@@ -104,7 +109,7 @@ const App = () => {
               disabled={isStarting}
               style={{
                 opacity: isStarting ? 0.7 : 1,
-                cursor: isStarting ? "wait" : "pointer"
+                cursor: isStarting ? "wait" : "pointer",
               }}
             >
               {isStarting ? "로딩중입니다..." : "게임 시작"}
