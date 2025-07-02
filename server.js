@@ -20,7 +20,7 @@ const QUIZ_PROBLEMS = [
   { word: "보코더", accepts: ["보코더", "vocoder"] },
   { word: "오디오북", accepts: ["오디오북", "audiobook"] },
   { word: "초분광", accepts: ["초분광", "hyperspectral"] },
-  { word: "QR코드", accepts: ["qr코드", "qr", "qr code", "QRCode", "큐알", "큐알코드"] },
+  { word: "QR코드", accepts: ["qr코드", "qr code", "QRCode", "큐알코드"] },
   { word: "iot", accepts: ["iot", "아이오티", "IOT"] },
   { word: "tts", accepts: ["tts", "티티에스", "TTS"] },
   { word: "라이다", accepts: ["라이다", "lidar"] },
