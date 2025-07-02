@@ -138,68 +138,86 @@ const TypingQuiz = ({
   }
 
   const handleNext = async () => {
-    if (showCaptcha) {
-      if (!captchaInput) {
-        setHintMsg("캡차를 입력하세요!");
-        return;
-      }
-      // 캡차 검증 (API POST)
-      const resp = await fetch("/api/verify-captcha", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: captchaInput }),
-      }).then((r) => r.json());
-      if (!resp.success) {
-        setCaptchaFail(true);
-        setHintMsg("캡차가 틀렸습니다. 다시 입력해주세요!");
-        fetchCaptchaImage();
-        setCaptchaInput("");
-        return;
-      }
-      // 캡차 성공시
-      setShowCaptcha(false);
+  if (showCaptcha) {
+    if (!captchaInput) {
+      setHintMsg("캡차를 입력하세요!");
+      return;
+    }
+    // 캡차 검증 (API POST)
+    const resp = await fetch("/api/verify-captcha", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value: captchaInput }),
+    }).then((r) => r.json());
+    if (!resp.success) {
+      setCaptchaFail(true);
+      setHintMsg("캡차가 틀렸습니다. 다시 입력해주세요!");
+      fetchCaptchaImage();
       setCaptchaInput("");
-      setCaptchaFail(false);
-      setHintMsg("");
-      // 캡차 성공하면 다시 handleNext의 나머지 동작 실행!
-    }
-    if (!userInput) {
-      setHintMsg("답을 입력하세요!");
       return;
     }
-    if (isAnswerCorrect(userInput, quizList[index])) {
-      const timeUsed = currentProblemStartTime
-        ? Date.now() - currentProblemStartTime
-        : 0;
-      setUserAnswers([
-        ...userAnswers,
-        {
-          word: quizList[index].word,
-          userInput,
-          correct: true,
-          timeUsed,
-        },
-      ]);
-      setTimerActive(false);
-      if (index + 1 < quizList.length) {
-        setIndex(index + 1);
-      } else {
-        onFinish(
-          userAnswers.concat([
-            {
-              word: quizList[index].word,
-              userInput,
-              correct: true,
-              timeUsed,
-            },
-          ]),
-          quizStartTime || Date.now() // ← 이렇게!
-        );
+    // 캡차 성공시
+    setShowCaptcha(false);
+    setCaptchaInput("");
+    setCaptchaFail(false);
+    setHintMsg("");
+    // 캡차 성공하면 다시 handleNext의 나머지 동작 실행!
+  }
+  if (!userInput) {
+    setHintMsg("답을 입력하세요!");
+    return;
+  }
+  if (isAnswerCorrect(userInput, quizList[index])) {
+    // ========== [정답 5개, 3초 이내 캡차 트리거] ==========
+    const now = Date.now();
+    answerTimes.current.push(now);
+    if (answerTimes.current.length > 5)
+      answerTimes.current.shift(); // 최근 5개만 저장
+    if (answerTimes.current.length === 5) {
+      const dt = answerTimes.current[4] - answerTimes.current[0];
+      if (dt <= 3000) { // 3초 이내 5개 연속 정답
+        setShowCaptcha(true);
+        fetchCaptchaImage();
+        setHintMsg("자동입력 방지! 캡차를 입력해주세요.");
+        setCaptchaInput("");
+        return; // 캡차 입력까지 진행 멈춤
       }
-      return;
     }
-    setHintMsg("오답입니다! 다시 시도해보세요 😅");
-  };
+    // ================================================
+
+    const timeUsed = currentProblemStartTime
+      ? Date.now() - currentProblemStartTime
+      : 0;
+    setUserAnswers([
+      ...userAnswers,
+      {
+        word: quizList[index].word,
+        userInput,
+        correct: true,
+        timeUsed,
+      },
+    ]);
+    setTimerActive(false);
+    if (index + 1 < quizList.length) {
+      setIndex(index + 1);
+    } else {
+      onFinish(
+        userAnswers.concat([
+          {
+            word: quizList[index].word,
+            userInput,
+            correct: true,
+            timeUsed,
+          },
+        ]),
+        quizStartTime,
+        totalElapsed // << 추가!
+      );
+    }
+    return;
+  }
+  setHintMsg("오답입니다! 다시 시도해보세요 😅");
+};
 
   // 엔터키
   const handleKeyDown = (e) => {
