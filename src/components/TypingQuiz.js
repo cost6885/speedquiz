@@ -1,82 +1,34 @@
 import React, { useState, useRef, useEffect } from "react";
 import Timer from "./Timer";
 
-// 한글 자모 분해 함수
-function splitHangul(char) {
-  if (!/^[가-힣]$/.test(char)) return [char];
-  const BASE = 0xac00;
-  const CHOSUNG = [
-    "ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ",
-    "ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"
-  ];
-  const JUNGSUNG = [
-    "ㅏ","ㅐ","ㅑ","ㅒ","ㅓ","ㅔ","ㅕ","ㅖ","ㅗ",
-    "ㅘ","ㅙ","ㅚ","ㅛ","ㅜ","ㅝ","ㅞ","ㅟ","ㅠ",
-    "ㅡ","ㅢ","ㅣ"
-  ];
-  const JONGSUNG = [
-    "", "ㄱ","ㄲ","ㄳ","ㄴ","ㄵ","ㄶ","ㄷ","ㄹ","ㄺ",
-    "ㄻ","ㄼ","ㄽ","ㄾ","ㄿ","ㅀ","ㅁ","ㅂ","ㅄ","ㅅ",
-    "ㅆ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"
-  ];
-  const code = char.charCodeAt(0) - BASE;
-  const cho = Math.floor(code / (21 * 28));
-  const jung = Math.floor((code % (21 * 28)) / 28);
-  const jong = code % 28;
-  const arr = [CHOSUNG[cho], JUNGSUNG[jung]];
-  if (JONGSUNG[jong]) arr.push(JONGSUNG[jong]);
-  return arr;
-}
-
-// 문자열 전체 자모로 분해 (ex: "오디오북" → 9타)
-function disassembleHangul(str) {
-  const chars = [...str];
-  let result = [];
-  chars.forEach((c) => {
-    if (/^[가-힣]$/.test(c)) {
-      result = result.concat(splitHangul(c));
-    } else {
-      result.push(c);
-    }
-  });
-  return result;
-}
-
-function getMinKeyCount(problem) {
-  return Math.min(
-    ...(problem.accepts || []).map(ans =>
-      /[가-힣]/.test(ans)
-        ? disassembleHangul(ans).length
-        : ans.length
-    )
-  );
-}
-
-function normalize(str) {
-  return (str || "")
-    .replace(/\s+/g, "")
-    .toLowerCase()
-    .replace(/-/g, "")
-    .replace(/_/g, "");
-}
-function isAnswerCorrect(userInput, currentQuiz) {
-  if (!currentQuiz || !Array.isArray(currentQuiz.accepts)) return false;
-  const inputNorm = normalize(userInput);
-  return currentQuiz.accepts.some((ans) => normalize(ans) === inputNorm);
-}
-
-const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
+const TypingQuiz = ({
+  quizList,
+  onFinish,
+  setCurrentIdx,
+  onFirstImageLoaded,
+  isLoadingOnly,
+}) => {
   const [index, setIndex] = useState(0);
   const [userInput, setUserInput] = useState("");
   const [userAnswers, setUserAnswers] = useState([]);
-  const [startTime] = useState(Date.now());
+  const [showQuestion, setShowQuestion] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+
   const [hintMsg, setHintMsg] = useState("");
   const inputRef = useRef(null);
-  const [showQuestion, setShowQuestion] = useState(true);
-  const [userInputKeyCount, setUserInputKeyCount] = useState(0);
-  const [keyLog, setKeyLog] = useState([]);
 
+  // 타이머
+  const [quizStartTime, setQuizStartTime] = useState(null); // null → 시작 시점 기록
+  const [currentProblemStartTime, setCurrentProblemStartTime] = useState(null);
+  const [totalElapsed, setTotalElapsed] = useState(0);
+  const [timerActive, setTimerActive] = useState(false);
+
+  // 로딩
+  const [imgLoading, setImgLoading] = useState(true);
+
+  // 👇 로딩 시간 누적
+  const loadingPausedRef = useRef(0);
+  const loadingStartRef = useRef(null);
 
   // 👇 캡차 관련 상태
   const [showCaptcha, setShowCaptcha] = useState(false);
@@ -88,55 +40,49 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
   // 👇 1초 이내 연속통과 감지용(마지막 3개 타임스탬프 기록)
   const answerTimes = useRef([]);
 
-
-  const handleInputKeyDown = (e) => {
-    // 실제 타이핑(한 글자 이상)
-    if (e.key.length === 1) {
-      setKeyLog((prev) => [...prev, e.key]);
-    } else if (
-      ["Backspace", "Delete", "Enter", "Tab"].includes(e.key)
-    ) {
-      setKeyLog((prev) => [...prev, `[${e.key}]`]);
-    }
-    // 붙여넣기/복사/잘라내기/전체선택 막기
-    if (
-      (e.ctrlKey || e.metaKey) &&
-      ["v", "V", "c", "C", "x", "X", "a", "A"].includes(e.key)
-    ) {
-      e.preventDefault();
-      setHintMsg("붙여넣기는 사용할 수 없습니다!");
-      return;
-    }
-    // 기존 엔터 처리
-    if (e.key === "Enter") handleNext();
-  };
-
-
-  
-  // 타이핑시 실제 "자모수" 카운트!
+  // 타이머 (문제 볼 수 있을 때만 동작)
   useEffect(() => {
-    setUserInputKeyCount(
-      /[가-힣]/.test(userInput)
-        ? disassembleHangul(userInput).length
-        : userInput.length
-    );
-  }, [userInput, index, quizList]);
+    if (!timerActive || quizStartTime === null) return;
+    const timer = setInterval(() => {
+      setTotalElapsed(
+        Math.max(0, Date.now() - quizStartTime - loadingPausedRef.current)
+      );
+    }, 100);
+    return () => clearInterval(timer);
+  }, [timerActive, quizStartTime]);
 
-  // 문제 넘어갈 때 리셋
+  // 문제 바뀔 때마다 로딩! (맨 처음에도 반드시 imgLoading=true)
   useEffect(() => {
+    setImgLoading(true);
     setShowQuestion(false);
-    const timer = setTimeout(() => {
-      setShowQuestion(true);
-      setUserInput("");
-      setIsCorrect(false);
-      setHintMsg("");
-      if (setCurrentIdx) setCurrentIdx(index);
-      if (inputRef.current) inputRef.current.focus();
-      setUserInputKeyCount(0);
-    }, 220);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line
-  }, [index]);
+    setUserInput("");
+    setHintMsg("");
+    setCurrentProblemStartTime(null);
+    setTimerActive(false);
+    if (setCurrentIdx) setCurrentIdx(index);
+    loadingStartRef.current = Date.now();
+    if (index === 0) {
+      loadingPausedRef.current = 0; // ⭐️ 첫 문제에서 반드시 0으로!
+    }
+  }, [index, setCurrentIdx]);
+
+  // input 자동 포커스 (이미지 로딩 완료 시점)
+  useEffect(() => {
+    if (!imgLoading && showQuestion && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [imgLoading, showQuestion, index]);
+
+  useEffect(() => {
+    if (
+      !imgLoading &&
+      index === 0 &&
+      typeof onFirstImageLoaded === "function"
+    ) {
+      onFirstImageLoaded();
+    }
+    // 의존성 배열에 onFirstImageLoaded 꼭 포함!
+  }, [imgLoading, index, onFirstImageLoaded]);
 
   // 캡차 이미지 받아오기
   const fetchCaptchaImage = async () => {
@@ -146,20 +92,51 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
     setCaptchaImageUrl(URL.createObjectURL(blob));
   };
 
-  // 정답 입력 감지
-  const handleInput = (e) => {
-    setUserInput(e.target.value);
-    setIsCorrect(isAnswerCorrect(e.target.value, quizList[index]));
-    setHintMsg("");
-  };
-
   // 캡차 입력 감지
   const handleCaptchaInput = (e) => {
     setCaptchaInput(e.target.value);
     setCaptchaFail(false);
   };
 
-  // 다음/제출 버튼 클릭
+  // 입력 변화시 정답 체크
+  const handleInput = (e) => {
+    setUserInput(e.target.value);
+    setIsCorrect(isAnswerCorrect(e.target.value, quizList[index]));
+    setHintMsg("");
+  };
+
+  // 이미지 로딩 완료시 (첫 문제/이후 모두 포함)
+  const handleImgLoaded = () => {
+    setImgLoading(false);
+    setShowQuestion(true);
+    setCurrentProblemStartTime(Date.now());
+    setQuizStartTime((prev) => prev || Date.now());
+    // 👇 바로 아래 이 한 줄 추가!
+    if (index === 0) loadingPausedRef.current = 0;
+    // 로딩 시간 누적
+    if (loadingStartRef.current) {
+      loadingPausedRef.current += Date.now() - loadingStartRef.current;
+    }
+    setTimerActive(true);
+    setTimeout(() => {
+      if (inputRef.current) inputRef.current.focus();
+    }, 50);
+    console.log(quizStartTime);
+  };
+
+  function normalize(str) {
+    return (str || "")
+      .replace(/\s+/g, "")
+      .toLowerCase()
+      .replace(/-/g, "")
+      .replace(/_/g, "");
+  }
+  function isAnswerCorrect(userInput, currentQuiz) {
+    if (!currentQuiz || !Array.isArray(currentQuiz.accepts)) return false;
+    const inputNorm = normalize(userInput);
+    return currentQuiz.accepts.some((ans) => normalize(ans) === inputNorm);
+  }
+
   const handleNext = async () => {
     if (showCaptcha) {
       if (!captchaInput) {
@@ -171,7 +148,7 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: captchaInput }),
-      }).then(r => r.json());
+      }).then((r) => r.json());
       if (!resp.success) {
         setCaptchaFail(true);
         setHintMsg("캡차가 틀렸습니다. 다시 입력해주세요!");
@@ -186,50 +163,24 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
       setHintMsg("");
       // 캡차 성공하면 다시 handleNext의 나머지 동작 실행!
     }
-
-    const minKeyCount = getMinKeyCount(quizList[index]);
-    const userKeyCount = /[가-힣]/.test(userInput)
-      ? disassembleHangul(userInput).length
-      : userInput.length;
-
     if (!userInput) {
       setHintMsg("답을 입력하세요!");
       return;
     }
-    if (minKeyCount > 0 && userKeyCount < minKeyCount) {
-      setHintMsg(`정답을 직접 타이핑해 주세요! (최소 ${minKeyCount}타 입력 필요)`);
-      return;
-    }
     if (isAnswerCorrect(userInput, quizList[index])) {
-      // --- [1초 이내 연속통과 로직] ---
-      const now = Date.now();
-      answerTimes.current.push(now);
-      if (answerTimes.current.length > 5)
-        answerTimes.current.shift();
-      if (answerTimes.current.length === 5) {
-        const dt = answerTimes.current[4] - answerTimes.current[0];
-        if (dt <= 3000) {  
-          setShowCaptcha(true);
-          fetchCaptchaImage();
-          setHintMsg("자동입력 방지 확인! 캡차를 입력해주세요.");
-          setCaptchaInput("");
-          return;
-        }
-      }
-      // ---------------------------
+      const timeUsed = currentProblemStartTime
+        ? Date.now() - currentProblemStartTime
+        : 0;
       setUserAnswers([
         ...userAnswers,
         {
           word: quizList[index].word,
           userInput,
           correct: true,
-          time: now,
-          keyLog: [...keyLog],  // 여기!
+          timeUsed,
         },
       ]);
-      setHintMsg("");
-      // 타임스탬프 갱신은 위에서 이미 됨
-
+      setTimerActive(false);
       if (index + 1 < quizList.length) {
         setIndex(index + 1);
       } else {
@@ -239,10 +190,10 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
               word: quizList[index].word,
               userInput,
               correct: true,
-              time: now,
+              timeUsed,
             },
           ]),
-          startTime
+          quizStartTime || Date.now() // ← 이렇게!
         );
       }
       return;
@@ -250,38 +201,112 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
     setHintMsg("오답입니다! 다시 시도해보세요 😅");
   };
 
+  // 엔터키
+  const handleKeyDown = (e) => {
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      ["v", "V", "c", "C", "x", "X", "a", "A"].includes(e.key)
+    ) {
+      e.preventDefault();
+      return;
+    }
+    if (e.key === "Enter") handleNext();
+  };
 
   return (
     <div className="quiz-box">
-      <div className={`desc-area quiz-transition${showQuestion ? " in" : " out"}`}>
+      <div
+        className={`desc-area quiz-transition${showQuestion ? " in" : " out"}`}
+        style={{
+          minHeight: 250,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <div className="quiz-label">Q{index + 1}.</div>
-        <div className="quiz-desc">{quizList[index].desc}</div>
+        {quizList[index].descImg ? (
+          <>
+            {imgLoading && (
+              <div
+                style={{
+                  minHeight: 200,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 26,
+                  color: "#888",
+                  fontWeight: 700,
+                  letterSpacing: "0.03em",
+                }}
+              >
+                <div
+                  className="img-loading-spin"
+                  style={{
+                    marginRight: 15,
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    border: "5px solid #bfe6ff",
+                    borderTop: "5px solid #53c8ff",
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+                문제 이미지를 불러오는 중...
+                <style>
+                  {`@keyframes spin {100%{transform: rotate(360deg);}}`}
+                </style>
+              </div>
+            )}
+            <img
+              src={quizList[index].descImg}
+              alt="문제 이미지"
+              style={{
+                maxWidth: "96%",
+                maxHeight: 220,
+                borderRadius: 14,
+                boxShadow: "0 4px 20px #aac3e955",
+                background: "#fff",
+                objectFit: "contain",
+                display: imgLoading ? "none" : "block",
+              }}
+              onLoad={handleImgLoaded}
+              draggable={false}
+            />
+          </>
+        ) : (
+          <div style={{ minHeight: 120 }} />
+        )}
       </div>
-
       <div className="input-area">
         <input
           ref={inputRef}
           value={userInput}
           onChange={handleInput}
-          onKeyDown={handleInputKeyDown} // 여기만 수정!
-          onPaste={e => {
+          onKeyDown={handleKeyDown}
+          onPaste={(e) => {
             e.preventDefault();
             setHintMsg("붙여넣기는 사용할 수 없습니다!");
           }}
-          onCopy={e => e.preventDefault()}
-          onCut={e => e.preventDefault()}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
           placeholder="정답을 입력하세요"
           className="quiz-input"
-          disabled={showCaptcha}
+          disabled={imgLoading}
         />
-        <button className="quiz-btn" onClick={handleNext}>
+
+        <button className="quiz-btn" onClick={handleNext} disabled={imgLoading}>
           {index + 1 === quizList.length ? "제출" : "다음"}
         </button>
       </div>
-
       {showCaptcha && (
         <div className="captcha-area" style={{ marginTop: 20 }}>
-          <img src={captchaImageUrl} alt="캡차" style={{ height: 40, verticalAlign: "middle" }} />
+          <img
+            src={captchaImageUrl}
+            alt="캡차"
+            style={{ height: 40, verticalAlign: "middle" }}
+          />
           <input
             value={captchaInput}
             onChange={handleCaptchaInput}
@@ -292,11 +317,8 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
         </div>
       )}
 
-      {hintMsg && showQuestion && (
-        <div className="hint-text">{hintMsg}</div>
-      )}
-
-      <Timer />
+      {hintMsg && showQuestion && <div className="hint-text">{hintMsg}</div>}
+      <Timer time={totalElapsed} running={timerActive} />
       <div className="quiz-progress">
         {index + 1} / {quizList.length}
       </div>
