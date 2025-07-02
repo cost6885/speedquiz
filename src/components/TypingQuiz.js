@@ -204,11 +204,11 @@ const TypingQuiz = ({ quizList, onFinish, setCurrentIdx }) => {
       // --- [1초 이내 연속통과 로직] ---
       const now = Date.now();
       answerTimes.current.push(now);
-      if (answerTimes.current.length > 4)
+      if (answerTimes.current.length > 5)
         answerTimes.current.shift();
-      if (answerTimes.current.length === 4) {
-        const dt = answerTimes.current[3] - answerTimes.current[0];
-        if (dt <= 4000) { 
+      if (answerTimes.current.length === 5) {
+        const dt = answerTimes.current[4] - answerTimes.current[0];
+        if (dt <= 3000) {  
           setShowCaptcha(true);
           fetchCaptchaImage();
           setHintMsg("자동입력 방지 확인! 캡차를 입력해주세요.");
