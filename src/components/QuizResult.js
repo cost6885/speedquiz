@@ -119,7 +119,6 @@ const keyframes = `
 
 const QuizResult = ({ results, startTime, onRestart }) => {
   const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false); // 추가!
   const [submitMsg, setSubmitMsg] = useState("");
   const [form, setForm] = useState({
     company: "",
@@ -128,21 +127,23 @@ const QuizResult = ({ results, startTime, onRestart }) => {
   });
 
   const correctCount = results.filter((r) => r.correct).length;
-  const totalTime = ((results[results.length - 1]?.time - startTime) / 1000).toFixed(2);
+
+  // 제출
+  const totalTime = (
+    results.reduce((sum, r) => sum + (r.timeUsed || 0), 0) / 1000
+  ).toFixed(2);
 
   const handleSubmit = async () => {
-    if (isSubmitting) return; // 중복 방지!
     if (!form.company || !form.employeeId || !form.name) {
       setSubmitMsg("회사/사번/이름을 모두 입력하세요!");
       return;
     }
-    setIsSubmitting(true); // 제출 시작!
     try {
       const payload = {
         ...form,
-        quizResults: results,
-        startTime,
-        endTime: results[results.length - 1]?.time,
+        timeTaken: totalTime,
+        time: new Date().toISOString(),
+        status: "정상",
       };
       const res = await submitRecord(payload);
       if (res?.status === "success") {
@@ -153,11 +154,8 @@ const QuizResult = ({ results, startTime, onRestart }) => {
       }
     } catch (e) {
       setSubmitMsg("제출 실패: " + e.message);
-    } finally {
-      setIsSubmitting(false); // 항상 해제!
     }
   };
-
 
   if (submitted)
     return (
@@ -171,18 +169,7 @@ const QuizResult = ({ results, startTime, onRestart }) => {
             참여해주셔서 감사합니다!
           </span>
         </div>
-        <button
-          style={buttonGhost}
-          onClick={async () => {
-            try {
-              await fetch("/api/captcha/reset", { method: "GET" });
-            } catch (e) {
-              // 네트워크 장애 등 무시
-            }
-            onRestart();
-          }}
-          disabled={isSubmitting}
-        >
+        <button style={buttonGhost} onClick={onRestart}>
           다시하기
         </button>
       </div>
@@ -231,14 +218,10 @@ const QuizResult = ({ results, startTime, onRestart }) => {
         />
       </div>
       <div style={buttonWrap}>
-        <button
-          style={buttonMain}
-          onClick={handleSubmit}
-          disabled={isSubmitting} // 중복제출 막음!
-        >
-          {isSubmitting ? "제출 중..." : "제출하기"}
+        <button style={buttonMain} onClick={handleSubmit}>
+          제출하기
         </button>
-        <button style={buttonGhost} onClick={onRestart} disabled={isSubmitting}>
+        <button style={buttonGhost} onClick={onRestart}>
           다시하기
         </button>
       </div>
