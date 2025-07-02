@@ -5,6 +5,7 @@ const cors = require('cors');
 const svgCaptcha = require('svg-captcha');
 const cookieParser = require('cookie-parser');
 const app = express();
+const path = require("path");
 
 app.use(express.json());
 app.use(cors({ origin: true, credentials: true }));
@@ -27,6 +28,34 @@ const QUIZ_PROBLEMS = [
   { word: "로보택시", accepts: ["로보택시", "robotaxi"] },
   { word: "디지털트윈", accepts: ["디지털트윈", "digitaltwin", "digital twin"] },
 ];
+
+// [추가]
+const QUIZ_IMG_FILES = [
+  "보코더.png",
+  "오디오북.png",
+  "초분광.png",
+  "큐알.png",
+  "아이오티.png",
+  "티티에스.png",
+  "라이다.png",
+  "멀티모달.png",
+  "로보택시.png",
+  "디지털트윈.png",
+];
+
+
+// [추가]
+app.get('/api/quizimg', (req, res) => {
+  const idx = parseInt(req.query.idx, 10);
+  // 방어 로직
+  if (isNaN(idx) || idx < 0 || idx >= QUIZ_IMG_FILES.length) {
+    return res.status(404).send("이미지 없음");
+  }
+  const imgPath = path.join(__dirname, "public", "data", QUIZ_IMG_FILES[idx]);
+  res.sendFile(imgPath);
+});
+
+
 
 // ------ [캡차 이미지 발급 API] ------
 app.get('/api/captcha', (req, res) => {
