@@ -1,11 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 
-const Timer = () => {
-  const [sec, setSec] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setSec((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
+const Timer = ({ time = 0, running = false }) => {
+  // time: ms단위, running: 필요하면 받아둠(여유)
+  const sec = Math.floor((time || 0) / 1000);
   return <div className="timer">⏰ {sec}초</div>;
 };
 
