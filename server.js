@@ -44,7 +44,10 @@ const QUIZ_IMG_FILES = [
 ];
 
 
-// 기존 /api/quizimg 삭제하고 아래 추가
+// 정적 파일 serve
+app.use('/data', express.static(path.join(__dirname, 'public', 'data')));
+
+// 쿼리 idx 기반 이미지 반환
 app.get('/data/이미지.png', (req, res) => {
   const idx = parseInt(req.query.idx, 10);
   if (isNaN(idx) || idx < 0 || idx >= QUIZ_IMG_FILES.length) {
@@ -53,7 +56,6 @@ app.get('/data/이미지.png', (req, res) => {
   const imgPath = path.join(__dirname, "public", "data", QUIZ_IMG_FILES[idx]);
   res.sendFile(imgPath);
 });
-
 
 
 
