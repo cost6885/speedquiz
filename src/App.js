@@ -7,6 +7,7 @@ import "./styles.css";
 import RankingBoard from "./components/RankingBoard";
 import EventPrizeBoard from "./components/EventPrizeBoard";
 import HearthstonePortalLoading from "./components/HearthstonePortalLoading";
+import NoticeModal from "./components/NoticeModal"; // << 새로 import
 
 function shuffle(array) {
   return array.slice().sort(() => Math.random() - 0.5);
@@ -24,9 +25,18 @@ const App = () => {
   // 로딩, 에러 상태
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState("");
+  const [endTime, setEndTime] = useState(null);
+  const [finalElapsed, setFinalElapsed] = useState(null);
+  const [showNotice, setShowNotice] = useState(false);
 
-  // 게임 시작 버튼 → api 요청 → 성공시 애니 1.5초 보여주고 퀴즈 화면 진입
+  // 게임 시작 버튼 → 안내팝업 먼저!
   const startGame = async () => {
+    setShowNotice(true);
+  };
+
+  // 팝업 닫히면 진짜 게임 스타트
+  const handleNoticeClose = async () => {
+    setShowNotice(false);
     setIsStarting(true);
     setStartError("");
     try {
@@ -35,7 +45,6 @@ const App = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      // fetch 완료 → 1.5초 하스스톤 포탈 애니 보여주기
       setTimeout(() => {
         setStep("quiz");
         setIsStarting(false);
@@ -47,9 +56,10 @@ const App = () => {
   };
 
   // 퀴즈 끝나면 result로
-  const handleFinish = (userAnswers, start, lastIdx) => {
+  const handleFinish = (userAnswers, start, elapsed) => {
     setResult(userAnswers);
     setStartTime(start);
+    setFinalElapsed(elapsed); // << 여기!!
     setStep("result");
   };
 
@@ -63,6 +73,7 @@ const App = () => {
 
   return (
     <>
+      <NoticeModal open={showNotice} onClose={handleNoticeClose} />
       {isStarting && (
         <HearthstonePortalLoading
           onEnd={() => {
@@ -103,6 +114,7 @@ const App = () => {
                 </b>
               </p>
             </div>
+
             <button
               className="start-btn"
               onClick={startGame}
@@ -193,6 +205,7 @@ const App = () => {
           <QuizResult
             results={result}
             startTime={startTime}
+            finalElapsed={finalElapsed} // << 요렇게
             onRestart={handleRestart}
           />
         )}
