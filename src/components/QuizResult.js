@@ -179,20 +179,11 @@ const QuizResult = ({ results, startTime, onRestart }) => {
     <div style={boxStyle}>
       <FallingGangs />
       <style>{keyframes}</style>
-      <div style={celebrate}>🎉 DIGITAL TYPING CHALLENGE</div>
-      <div style={bigScore}>
-        {correctCount} / {results.length}
-        <span
-          style={{
-            fontSize: 19,
-            fontWeight: 600,
-            color: "#5ccfb3",
-            marginLeft: 10,
-          }}
-        >
-          정답
-        </span>
+      <div style={celebrate}>
+        <p>DIGITAL Literacy </p>
+        <p>🚦Speed Quiz🏁</p>
       </div>
+      <div style={bigScore}>성공!!</div>
       <div style={infoLabel}>
         ⏱️ <b>총 소요 시간</b>{" "}
         <span style={{ color: "#2277ee" }}>{totalTime}초</span>
