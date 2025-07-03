@@ -49,6 +49,7 @@ app.use('/data', express.static(path.join(__dirname, 'public', 'data')));
 
 // (2) 커스텀 이미지 라우터(인덱스 기반)
 app.get('/data/이미지.png', (req, res) => {
+  console.log("[이미지 라우트]", req.query);
   const idx = parseInt(req.query.idx, 10);
   if (isNaN(idx) || idx < 0 || idx >= QUIZ_IMG_FILES.length) {
     return res.status(404).send("이미지 없음");
