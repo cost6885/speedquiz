@@ -154,6 +154,7 @@ app.post('/api/count', async (req, res) => {
 
 // ------ [제출 API] ------
 app.post('/api/submit', async (req, res) => {
+  const userIp = getClientIp(req);
   console.log("[submit] 받은 페이로드:", req.body);
   const { company, employeeId, name, quizResults, startTime, endTime, captchaValue, requireCaptcha } = req.body;
 
