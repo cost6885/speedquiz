@@ -139,10 +139,13 @@ const QuizResult = ({ results, startTime, onRestart }) => {
       return;
     }
     try {
+      // ⬇️ startTime, endTime, quizResults 필수!
       const payload = {
         ...form,
+        quizResults: results,
+        startTime, // 퀴즈 시작시간(ms)
+        endTime: startTime + Number(totalTime) * 1000, // 종료시간(ms) = 시작+소요시간
         timeTaken: totalTime,
-        time: new Date().toISOString(),
         status: "정상",
       };
       const res = await submitRecord(payload);
@@ -156,6 +159,7 @@ const QuizResult = ({ results, startTime, onRestart }) => {
       setSubmitMsg("제출 실패: " + e.message);
     }
   };
+
 
   if (submitted)
     return (
