@@ -6,6 +6,9 @@ const svgCaptcha = require('svg-captcha');
 const cookieParser = require('cookie-parser');
 const app = express();
 const path = require("path");
+const crypto = require('crypto');
+const IMG_TOKEN_MAP = {}; // {token: idx}
+const IDX_TOKEN_MAP = {}; // {idx: token}
 
 app.use(express.json());
 app.use(cors({ origin: true, credentials: true }));
@@ -14,6 +17,9 @@ app.use(cookieParser());
 // ------ [임시 IP/UA 추적용] ------
 const ipMap = new Map();      // key: ip, value: [timestamp,...]
 const recordSet = new Map();  // key: "회사/사번"  value: {time, ...}
+
+
+
 
 // ------ [1] 퀴즈 데이터 ------
 const QUIZ_PROBLEMS = [
@@ -43,16 +49,30 @@ const QUIZ_IMG_FILES = [
   "디지털트윈.png",
 ];
 
+QUIZ_IMG_FILES.forEach((fname, idx) => {
+  const token = crypto.randomBytes(8).toString('hex'); // 16글자 랜덤
+  IMG_TOKEN_MAP[token] = idx;
+  IDX_TOKEN_MAP[idx] = token;
+});
 
 
-app.get('/quizimg', (req, res) => {
-  const idx = parseInt(req.query.idx, 10);
-  if (isNaN(idx) || idx < 0 || idx >= QUIZ_IMG_FILES.length) {
-    return res.status(404).send("이미지 없음");
-  }
+
+
+app.get('/quizimg/:token', (req, res) => {
+  const idx = IMG_TOKEN_MAP[req.params.token];
+  if (idx === undefined) return res.status(404).send("이미지 없음");
   const imgPath = path.join(__dirname, "public", "data", QUIZ_IMG_FILES[idx]);
   res.sendFile(imgPath);
 });
+
+app.get('/api/problems', (req, res) => {
+  const problemList = QUIZ_PROBLEMS.map((prob, idx) => ({
+    ...prob,
+    descImg: `/quizimg/${IDX_TOKEN_MAP[idx]}`
+  }));
+  res.json(problemList);
+});
+
 
 
 // (2) 정적파일 serve - 나중에!
