@@ -44,16 +44,16 @@ const QUIZ_IMG_FILES = [
 ];
 
 
-// [추가]
-app.get('/api/quizimg', (req, res) => {
+// 기존 /api/quizimg 삭제하고 아래 추가
+app.get('/data/이미지.png', (req, res) => {
   const idx = parseInt(req.query.idx, 10);
-  // 방어 로직
   if (isNaN(idx) || idx < 0 || idx >= QUIZ_IMG_FILES.length) {
     return res.status(404).send("이미지 없음");
   }
   const imgPath = path.join(__dirname, "public", "data", QUIZ_IMG_FILES[idx]);
   res.sendFile(imgPath);
 });
+
 
 
 
