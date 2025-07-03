@@ -44,10 +44,7 @@ const QUIZ_IMG_FILES = [
 ];
 
 
-// (1) 정적파일 serve 먼저
-app.use('/data', express.static(path.join(__dirname, 'public', 'data')));
-
-// (2) 커스텀 이미지 라우터(인덱스 기반)
+// (1) 커스텀 이미지 라우터(인덱스 기반) - 먼저!
 app.get('/data/이미지.png', (req, res) => {
   console.log("[이미지 라우트]", req.query);
   const idx = parseInt(req.query.idx, 10);
@@ -57,6 +54,10 @@ app.get('/data/이미지.png', (req, res) => {
   const imgPath = path.join(__dirname, "public", "data", QUIZ_IMG_FILES[idx]);
   res.sendFile(imgPath);
 });
+
+// (2) 정적파일 serve - 나중에!
+app.use('/data', express.static(path.join(__dirname, 'public', 'data')));
+
 
 
 
