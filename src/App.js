@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import TypingQuiz from "./components/TypingQuiz";
 import QuizResult from "./components/QuizResult";
 import FallingBgLayer from "./components/FallingBgLayer";
