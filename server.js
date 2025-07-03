@@ -44,9 +44,8 @@ const QUIZ_IMG_FILES = [
 ];
 
 
-// (1) 커스텀 이미지 라우터(인덱스 기반) - 먼저!
-app.get('/data/이미지.png', (req, res) => {
-  console.log("[이미지 라우트]", req.query);
+
+app.get('/quizimg', (req, res) => {
   const idx = parseInt(req.query.idx, 10);
   if (isNaN(idx) || idx < 0 || idx >= QUIZ_IMG_FILES.length) {
     return res.status(404).send("이미지 없음");
@@ -54,6 +53,7 @@ app.get('/data/이미지.png', (req, res) => {
   const imgPath = path.join(__dirname, "public", "data", QUIZ_IMG_FILES[idx]);
   res.sendFile(imgPath);
 });
+
 
 // (2) 정적파일 serve - 나중에!
 app.use('/data', express.static(path.join(__dirname, 'public', 'data')));
