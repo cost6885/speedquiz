@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import TypingQuiz from "./components/TypingQuiz";
 import QuizResult from "./components/QuizResult";
 import FallingBgLayer from "./components/FallingBgLayer";
-import WORDS from "./data/words";
 import "./styles.css";
 import RankingBoard from "./components/RankingBoard";
 import EventPrizeBoard from "./components/EventPrizeBoard";
@@ -15,12 +14,13 @@ function shuffle(array) {
 
 const App = () => {
   const [step, setStep] = useState("intro"); // intro | quiz | result
-  const [quizList] = useState(shuffle(WORDS));
+  const [quizList, setQuizList] = useState([]); // 초기값은 빈 배열!
   const [result, setResult] = useState(null);
   const [startTime, setStartTime] = useState(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [showRanking, setShowRanking] = useState(false);
   const [showPrize, setShowPrize] = useState(false);
+  
 
   // 로딩, 에러 상태
   const [isStarting, setIsStarting] = useState(false);
@@ -29,6 +29,12 @@ const App = () => {
   const [finalElapsed, setFinalElapsed] = useState(null);
   const [showNotice, setShowNotice] = useState(false);
 
+  useEffect(() => {
+    fetch('/api/problems')
+      .then(res => res.json())
+      .then(setQuizList); // useState로 quizList 관리
+  }, []);
+  
   // 게임 시작 버튼 → 안내팝업 먼저!
   const startGame = async () => {
     setShowNotice(true);
@@ -71,11 +77,7 @@ const App = () => {
     // 필요하다면 quizList 재셋팅 등 추가!
   };
 
-useEffect(() => {
-  fetch('/api/problems')
-    .then(res => res.json())
-    .then(setQuizList); // useState로 quizList 관리
-}, []);
+
 
   
   return (
