@@ -191,10 +191,6 @@ const HearthstonePortalLoading = ({ onEnd }) => {
               width: "100%",
               height: "100%",
               display: "block",
-              objectFit: "cover",
-              borderRadius: 0,
-              filter:
-                "brightness(0.98) grayscale(0.03) drop-shadow(0 0 15px #fff8)",
             }}
           />
         </div>
