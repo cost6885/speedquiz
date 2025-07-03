@@ -141,13 +141,10 @@ const QuizResult = ({ results, startTime, onRestart }) => {
     try {
       const payload = {
         ...form,
-        quizResults: results,
-        startTime: startTime,
-        endTime: startTime + finalElapsed, // 또는 (Date.now()) 등
         timeTaken: totalTime,
+        time: new Date().toISOString(),
         status: "정상",
       };
-
       const res = await submitRecord(payload);
       if (res?.status === "success") {
         setSubmitted(true);
