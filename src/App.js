@@ -71,6 +71,13 @@ const App = () => {
     // 필요하다면 quizList 재셋팅 등 추가!
   };
 
+useEffect(() => {
+  fetch('/api/problems')
+    .then(res => res.json())
+    .then(setQuizList); // useState로 quizList 관리
+}, []);
+
+  
   return (
     <>
       <NoticeModal open={showNotice} onClose={handleNoticeClose} />
