@@ -270,7 +270,8 @@ const App = () => {
           <QuizResult
             results={result}
             startTime={startTime}
-            finalElapsed={finalElapsed} // << 요렇게
+            finalElapsed={finalElapsed}
+            userInfo={result.userInfo}
             onRestart={handleRestart}
           />
         )}
