@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import submitRecord from "../api/submitRecord";
 import FallingGangs from "./FallingGangs";
 
@@ -74,8 +74,9 @@ const celebrate = {
 
 const infoLabel = {
   fontSize: 16,
+  marginBottom: "18px",
   color: "#444",
-  margin: "14px 0 4px",
+  margin: "0px 0 18px",
 };
 
 const inputWrap = {
@@ -117,58 +118,61 @@ const keyframes = `
 }
 `;
 
-const QuizResult = ({ results, startTime, onRestart }) => {
-  const [submitted, setSubmitted] = useState(false);
+const QuizResult = ({
+  results,
+  startTime,
+  finalElapsed,
+  userInfo,
+  onRestart,
+}) => {
   const [submitMsg, setSubmitMsg] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    company: "",
-    employeeId: "",
-    name: "",
-  });
+  const [submitted, setSubmitted] = useState(false);
 
-  const correctCount = Array.isArray(results) ? results.filter((r) => r.correct).length : 0;
+  // 네가 쓰는 totalTime 공식!
+  // (예시: props로 finalElapsed를 초로 전달받았다면 그대로 씀)
+  const totalTime = (results.elapsed / 1000).toFixed(2);
 
-  // 제출
-  const totalTime = (
-    results.reduce((sum, r) => sum + (r.timeUsed || 0), 0) / 1000
-  ).toFixed(2);
-
-  const handleSubmit = async () => {
-    if (isSubmitting) return; // 중복방지!
-    if (!form.company || !form.employeeId || !form.name) {
-      setSubmitMsg("회사/사번/이름을 모두 입력하세요!");
-      return;
-    }
-    setIsSubmitting(true); // 요청 시작
-    try {
-      // ⬇️ startTime, endTime, quizResults 필수!
-      const payload = {
-        ...form,
-        quizResults: results,
-        startTime, // 퀴즈 시작시간(ms)
-        endTime: startTime + Number(totalTime) * 1000, // 종료시간(ms) = 시작+소요시간
-        timeTaken: totalTime,
-        status: "정상",
-      };
-      const res = await submitRecord(payload);
-      if (res?.status === "success") {
+  useEffect(() => {
+    // 자동 제출: 최초 렌더에만 1회
+    const send = async () => {
+      try {
+        const payload = {
+          ...userInfo,
+          quizResults: results.userAnswers,
+          startTime,
+          endTime: startTime + finalElapsed,
+          timeTaken: totalTime,
+          status: "정상",
+        };
+        console.log("자동제출 payload", payload);
+        const res = await submitRecord(payload);
+        if (res?.status === "success") {
+          setSubmitMsg("제출 완료! 기록이 저장되었습니다 🎉");
+        } else {
+          setSubmitMsg("저장 중 오류가 발생했습니다: " + (res?.message || ""));
+        }
         setSubmitted(true);
-        setSubmitMsg("제출 완료! 기록이 저장되었습니다 🎉");
-      } else {
-        setSubmitMsg("저장 중 오류가 발생했습니다: " + (res?.message || ""));
+      } catch (e) {
+        setSubmitMsg("제출 실패: " + e.message);
+        setSubmitted(true);
       }
-    } catch (e) {
-      setSubmitMsg("제출 실패: " + e.message);
-    }
-    setIsSubmitting(false); // 요청 끝!
-  };
-
+    };
+    send();
+    // eslint-disable-next-line
+  }, []);
 
   if (submitted)
     return (
       <div style={boxStyle}>
         <style>{keyframes}</style>
+        <div style={celebrate}>
+          <p>DIGITAL Literacy</p>
+          <p>🚦Speed Quiz🏁</p>
+        </div>
+        <div style={infoLabel}>
+          ⏱️ <b>총 소요 시간</b>{" "}
+          <span style={{ color: "#2277ee" }}>{totalTime}초</span>
+        </div>
         <div style={celebrate}>🥳 제출 완료!</div>
         <div style={{ fontSize: 18, marginBottom: 12, color: "#2277ee" }}>
           기록이 저장되었습니다.
@@ -188,7 +192,7 @@ const QuizResult = ({ results, startTime, onRestart }) => {
       <FallingGangs />
       <style>{keyframes}</style>
       <div style={celebrate}>
-        <p>DIGITAL Literacy </p>
+        <p>DIGITAL Literacy</p>
         <p>🚦Speed Quiz🏁</p>
       </div>
       <div style={bigScore}>성공!!</div>
@@ -196,35 +200,7 @@ const QuizResult = ({ results, startTime, onRestart }) => {
         ⏱️ <b>총 소요 시간</b>{" "}
         <span style={{ color: "#2277ee" }}>{totalTime}초</span>
       </div>
-      <div style={inputWrap}>
-        <input
-          placeholder="회사"
-          value={form.company}
-          onChange={(e) => setForm({ ...form, company: e.target.value })}
-          style={inputBox}
-        />
-        <input
-          placeholder="사번(ID)"
-          value={form.employeeId}
-          onChange={(e) => setForm({ ...form, employeeId: e.target.value })}
-          style={inputBox}
-        />
-        <input
-          placeholder="이름"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          style={inputBox}
-        />
-      </div>
-      <div style={buttonWrap}>
-        <button style={buttonMain} onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? "제출 중..." : "제출하기"}
-        </button>
-        <button style={buttonGhost} onClick={onRestart}>
-          다시하기
-        </button>
-      </div>
-      {submitMsg && <div style={msgStyle}>{submitMsg}</div>}
+      <div style={msgStyle}>{submitMsg ? submitMsg : "기록 제출 중..."}</div>
     </div>
   );
 };
