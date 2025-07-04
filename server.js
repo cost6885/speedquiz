@@ -57,31 +57,38 @@ function shuffle(array) {
 
 // ------ [문제+이미지+토큰+세션ID 발급 API] ------
 app.get('/api/problems', (req, res) => {
-  // 1. 문제, 이미지 셔플
-  const shuffledProblems = shuffle(QUIZ_PROBLEMS);
-  const shuffledImages = shuffle(QUIZ_IMG_FILES);
+  // [1] 문제-이미지 쌍 배열
+  const problemPairs = QUIZ_PROBLEMS.map((prob, idx) => ({
+    ...prob,
+    imgFile: QUIZ_IMG_FILES[idx],
+  }));
 
-  // 2. 이미지별 토큰 생성
-  const imgTokenMap = {}; // token: imgFilename
-  const imgTokenReverseMap = {}; // imgFilename: token (문제와 매칭용)
-  shuffledImages.forEach((fname) => {
+  // [2] 쌍 배열을 셔플
+  const shuffledPairs = shuffle(problemPairs);
+
+  // [3] 이미지별 토큰 생성 (셔플 순서대로)
+  const imgTokenMap = {};
+  const imgTokenReverseMap = {};
+  shuffledPairs.forEach((pair) => {
     const token = crypto.randomBytes(8).toString('hex');
-    imgTokenMap[token] = fname;
-    imgTokenReverseMap[fname] = token;
+    imgTokenMap[token] = pair.imgFile;
+    imgTokenReverseMap[pair.imgFile] = token;
   });
 
-  // 3. 세션ID 생성, 매핑 저장 (만료처리는 생략)
+  // [4] 세션ID 생성, 매핑 저장
   const sessionId = crypto.randomBytes(10).toString('hex');
   sessionImgTokenMap[sessionId] = imgTokenMap;
 
-  // 4. 문제-이미지-토큰 1:1 매칭
-  const problemsWithImg = shuffledProblems.map((prob, idx) => ({
-    ...prob,
-    descImg: `/quizimg/${imgTokenReverseMap[shuffledImages[idx]]}?session=${sessionId}`,
+  // [5] 문제+이미지+토큰 매칭
+  const problemsWithImg = shuffledPairs.map((pair) => ({
+    word: pair.word,
+    accepts: pair.accepts,
+    descImg: `/quizimg/${imgTokenReverseMap[pair.imgFile]}?session=${sessionId}`,
   }));
 
   res.json({ problems: problemsWithImg, sessionId });
 });
+
 
 // ------ [이미지 서빙 API (토큰 + 세션)] ------
 app.get('/quizimg/:token', (req, res) => {
