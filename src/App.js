@@ -6,7 +6,8 @@ import "./styles.css";
 import RankingBoard from "./components/RankingBoard";
 import EventPrizeBoard from "./components/EventPrizeBoard";
 import HearthstonePortalLoading from "./components/HearthstonePortalLoading";
-import NoticeModal from "./components/NoticeModal"; // << 새로 import
+import NoticeModal from "./components/NoticeModal";
+import UserInfoModal from "./components/UserInfoModal"; 
 
 function shuffle(array) {
   return array.slice().sort(() => Math.random() - 0.5);
@@ -29,7 +30,8 @@ const App = () => {
   const [finalElapsed, setFinalElapsed] = useState(null);
   const [showNotice, setShowNotice] = useState(false);
   const [sessionId, setSessionId] = useState(null);
-  const [userInfo, setUserInfo] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);  
+  const [showUserInfo, setShowUserInfo] = useState(false); 
 
 
 
@@ -46,38 +48,74 @@ const App = () => {
     if (step === "intro") fetchProblems();
   }, [step]);
   
-  // 게임 시작 버튼 → 안내팝업 먼저!
-  const startGame = async () => {
-    setShowNotice(true);
+  const startGame = () => setShowUserInfo(true);
+
+  // 정보 입력 후 -> 실제 게임 시작
+  const handleUserInfoSubmit = (info) => {
+    setUserInfo(info);
+    setShowUserInfo(false); // 정보입력창 닫고
+    setTimeout(() => setShowNotice(true), 150); // 안내모달 띄움 (약간의 딜레이는 자연스러운 UX)
   };
 
-  // 팝업 닫히면 진짜 게임 스타트
-  const handleNoticeClose = async () => {
+  const handleNoticeClose = () => {
     setShowNotice(false);
     setIsStarting(true);
     setStartError("");
-    try {
-      await fetch("/api/count", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      setTimeout(() => {
-        setStep("quiz");
+    fetch("/api/count", {
+      /* ... */
+    })
+      .then(() => {
+        setTimeout(() => {
+          setStep("quiz");
+          setIsStarting(false);
+        }, 1500);
+      })
+      .catch(() => {
+        setStartError("네트워크 오류! 잠시 후 다시 시도해주세요.");
         setIsStarting(false);
-      }, 1500);
-    } catch (e) {
-      setStartError("네트워크 오류! 잠시 후 다시 시도해주세요.");
-      setIsStarting(false);
-    }
+      });
   };
 
-  // 퀴즈 끝나면 result로
+  
   const handleFinish = (userAnswers, start, elapsed) => {
-    setResult(userAnswers);
-    setStartTime(start);
-    setFinalElapsed(elapsed); // << 여기!!
-    setStep("result");
+    // 바로 기록 제출 (userInfo, 결과, 시간 포함)
+    const endTime = start + elapsed;
+    const payload = {
+      ...userInfo,
+      quizResults: userAnswers,
+      startTime: start,
+      endTime,
+      timeTaken: (elapsed / 1000).toFixed(2),
+      status: "정상",
+    };
+    // 👇 비동기로 기록 저장
+    fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then((res) => res.json())
+      .then((res) => {
+        setResult({
+          userAnswers,
+          startTime: start,
+          elapsed,
+          submitMsg:
+            res.status === "success"
+              ? "제출 완료! 기록이 저장되었습니다 🎉"
+              : "저장 중 오류가 발생했습니다: " + (res?.message || ""),
+        });
+        setStep("result");
+      })
+      .catch(() => {
+        setResult({
+          userAnswers,
+          startTime: start,
+          elapsed,
+          submitMsg: "기록 제출 실패 ㅠㅠ",
+        });
+        setStep("result");
+      });
   };
 
   // 다시하기
@@ -94,6 +132,11 @@ const App = () => {
   
   return (
     <>
+      <UserInfoModal
+        open={showUserInfo}
+        onSubmit={handleUserInfoSubmit}
+        onCancel={() => setShowUserInfo(false)} // 👈 intro로 돌아가게
+      />
       <NoticeModal open={showNotice} onClose={handleNoticeClose} />
       {isStarting && (
         <HearthstonePortalLoading
