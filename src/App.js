@@ -28,6 +28,8 @@ const App = () => {
   const [endTime, setEndTime] = useState(null);
   const [finalElapsed, setFinalElapsed] = useState(null);
   const [showNotice, setShowNotice] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+
 
 
   // 게임 시작(처음/다시하기)시 문제 셔플 호출 함수
