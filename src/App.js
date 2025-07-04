@@ -78,6 +78,7 @@ const App = () => {
 
   
   const handleFinish = (userAnswers, start, elapsed) => {
+    setFinalElapsed(elapsed);
     // 바로 기록 제출 (userInfo, 결과, 시간 포함)
     const endTime = start + elapsed;
     const payload = {
@@ -136,7 +137,7 @@ const App = () => {
       <UserInfoModal
         open={showUserInfo}
         onSubmit={handleUserInfoSubmit}
-        onCancel={() => setShowUserInfo(false)} // 👈 intro로 돌아가게
+        onCancel={() => setShowUserInfo(false)}
       />
       <NoticeModal open={showNotice} onClose={handleNoticeClose} />
       {isStarting && (
@@ -271,7 +272,7 @@ const App = () => {
             results={result}
             startTime={result.startTime}
             finalElapsed={result.elapsed}
-            userInfo={result.userInfo}
+            userInfo={userInfo}
             onRestart={handleRestart}
           />
         )}
