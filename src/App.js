@@ -100,6 +100,7 @@ const App = () => {
           userAnswers,
           startTime: start,
           elapsed,
+          userInfo,
           submitMsg:
             res.status === "success"
               ? "제출 완료! 기록이 저장되었습니다 🎉"
