@@ -143,8 +143,7 @@ const QuizResult = ({
           endTime: startTime + finalElapsed,
           timeTaken: totalTime,
           status: "정상",
-        };
-        console.log("자동제출 payload", payload);
+        };        
         const res = await submitRecord(payload);
         if (res?.status === "success") {
           setSubmitMsg("제출 완료! 기록이 저장되었습니다 🎉");
