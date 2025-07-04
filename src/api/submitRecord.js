@@ -1,5 +1,5 @@
 // src/api/submitRecord.js (프론트)
-const API_URL = "/api/submit"; // EC2면 http://<서버주소>:4000/api/submit
+const API_URL = "/api/submit";
 
 export default async function submitRecord(data) {
   try {
