@@ -7,8 +7,6 @@ const cookieParser = require('cookie-parser');
 const app = express();
 const path = require("path");
 const crypto = require('crypto');
-const IMG_TOKEN_MAP = {}; // {token: idx}
-const IDX_TOKEN_MAP = {}; // {idx: token}
 
 app.use(express.json());
 app.use(cors({ origin: true, credentials: true }));
@@ -17,9 +15,6 @@ app.use(cookieParser());
 // ------ [임시 IP/UA 추적용] ------
 const ipMap = new Map();      // key: ip, value: [timestamp,...]
 const recordSet = new Map();  // key: "회사/사번"  value: {time, ...}
-
-
-
 
 // ------ [1] 퀴즈 데이터 ------
 const QUIZ_PROBLEMS = [
@@ -35,7 +30,6 @@ const QUIZ_PROBLEMS = [
   { word: "디지털트윈", accepts: ["디지털트윈", "digitaltwin", "digital twin"] },
 ];
 
-// [추가]
 const QUIZ_IMG_FILES = [
   "보코더.png",
   "오디오북.png",
@@ -49,13 +43,11 @@ const QUIZ_IMG_FILES = [
   "디지털트윈.png",
 ];
 
-QUIZ_IMG_FILES.forEach((fname, idx) => {
-  const token = crypto.randomBytes(8).toString('hex'); // 16글자 랜덤
-  IMG_TOKEN_MAP[token] = idx;
-  IDX_TOKEN_MAP[idx] = token;
-});
+// ------ [세션별 토큰-이미지 매핑 저장소] ------
+const sessionImgTokenMap = {}; // { sessionId: { token: imgFilename, ... } }
+const SESSION_EXPIRE_MS = 20 * 60 * 1000; // 20분, 만료청소는 미구현(필요시 setInterval로)
 
-
+// ------ [셔플 함수] ------
 function shuffle(array) {
   return array
     .map((v) => ({ v, sort: Math.random() }))
@@ -63,33 +55,47 @@ function shuffle(array) {
     .map(({ v }) => v);
 }
 
+// ------ [문제+이미지+토큰+세션ID 발급 API] ------
+app.get('/api/problems', (req, res) => {
+  // 1. 문제, 이미지 셔플
+  const shuffledProblems = shuffle(QUIZ_PROBLEMS);
+  const shuffledImages = shuffle(QUIZ_IMG_FILES);
 
+  // 2. 이미지별 토큰 생성
+  const imgTokenMap = {}; // token: imgFilename
+  const imgTokenReverseMap = {}; // imgFilename: token (문제와 매칭용)
+  shuffledImages.forEach((fname) => {
+    const token = crypto.randomBytes(8).toString('hex');
+    imgTokenMap[token] = fname;
+    imgTokenReverseMap[fname] = token;
+  });
 
+  // 3. 세션ID 생성, 매핑 저장 (만료처리는 생략)
+  const sessionId = crypto.randomBytes(10).toString('hex');
+  sessionImgTokenMap[sessionId] = imgTokenMap;
+
+  // 4. 문제-이미지-토큰 1:1 매칭
+  const problemsWithImg = shuffledProblems.map((prob, idx) => ({
+    ...prob,
+    descImg: `/quizimg/${imgTokenReverseMap[shuffledImages[idx]]}?session=${sessionId}`,
+  }));
+
+  res.json({ problems: problemsWithImg, sessionId });
+});
+
+// ------ [이미지 서빙 API (토큰 + 세션)] ------
 app.get('/quizimg/:token', (req, res) => {
-  const idx = IMG_TOKEN_MAP[req.params.token];
-  if (idx === undefined) return res.status(404).send("이미지 없음");
-  const imgPath = path.join(__dirname, "public", "data", QUIZ_IMG_FILES[idx]);
+  const sessionId = req.query.session;
+  const imgTokenMap = sessionImgTokenMap[sessionId];
+  if (!imgTokenMap) return res.status(404).send("세션 만료 또는 잘못된 세션ID");
+  const fname = imgTokenMap[req.params.token];
+  if (!fname) return res.status(404).send("이미지 없음");
+  const imgPath = path.join(__dirname, "public", "data", fname);
   res.sendFile(imgPath);
 });
 
-app.get('/api/problems', (req, res) => {
-  const problemList = QUIZ_PROBLEMS.map((prob, idx) => ({
-    ...prob,
-    descImg: `/quizimg/${IDX_TOKEN_MAP[idx]}`
-  }));
-  // 여기서 셔플!
-  const shuffled = shuffle(problemList);
-  res.json(shuffled);
-});
-
-
-
-// (2) 정적파일 serve - 나중에!
+// ------ [정적파일 serve] ------
 app.use('/data', express.static(path.join(__dirname, 'public', 'data')));
-
-
-
-
 
 // ------ [캡차 이미지 발급 API] ------
 app.get('/api/captcha', (req, res) => {
@@ -117,21 +123,17 @@ app.post('/api/verify-captcha', (req, res) => {
   }
 });
 
-
 // ------ [캡차 쿠키 리셋 API] ------
 app.get('/api/captcha/reset', (req, res) => {
-  // 쿠키 삭제(만료시킴)
   res.clearCookie('captcha_code');
   res.json({ success: true, message: "캡차 쿠키 리셋됨" });
 });
-
 
 // ------ [정답 비교] ------
 function checkCorrect(userInput, accepts) {
   const norm = (s) => (s || "").replace(/\s+/g, "").toLowerCase();
   return accepts.some(ans => norm(ans) === norm(userInput));
 }
-
 function getClientIp(req) {
   let ip = req.headers['x-forwarded-for'];
   if (ip) ip = ip.split(',')[0].trim();
@@ -139,14 +141,12 @@ function getClientIp(req) {
   return ip;
 }
 
-
 app.post('/api/count', async (req, res) => {
-  // 유저 IP 추적
   const userIp = getClientIp(req);
   try {
     const gsRes = await axios.post(
       "https://script.google.com/macros/s/AKfycbxugcaDUvUwjLShfWLMbsNnwj5_0kW_qGj__y4Exu7gQXunZXxHaMXCYYXRzxMGBx4jTA/exec",
-      { ip: userIp }, // ← 반드시 ip를 담아서 보냄!
+      { ip: userIp },
       { headers: { "Content-Type": "application/json" } }
     );
     res.json(gsRes.data);
@@ -158,21 +158,15 @@ app.post('/api/count', async (req, res) => {
   }
 });
 
-
-
-
 // ------ [제출 API] ------
 app.post('/api/submit', async (req, res) => {
   const userIp = getClientIp(req);
   console.log("[submit] 받은 페이로드:", req.body);
   const { company, employeeId, name, quizResults, startTime, endTime, captchaValue, requireCaptcha } = req.body;
 
-  // 1. 필드체크
   if (!company || !employeeId || !name || !Array.isArray(quizResults) || !startTime || !endTime) {
     return res.status(400).json({ status: "error", message: "누락 필드" });
   }
-
-  // ----- [캡차 검증, 프론트에서 requireCaptcha: true로 보내는 경우만 적용] -----
   if (requireCaptcha) {
     const userInput = (captchaValue || '').trim().toLowerCase();
     const code = (req.cookies.captcha_code || '').trim().toLowerCase();
@@ -183,29 +177,21 @@ app.post('/api/submit', async (req, res) => {
       });
     }
   }
-
-  // 2. 정답 채점
   let correctCount = 0;
   for (let i = 0; i < QUIZ_PROBLEMS.length; i++) {
     const prob = QUIZ_PROBLEMS[i];
     const userAns = quizResults[i]?.userInput;
     if (checkCorrect(userAns, prob.accepts)) correctCount++;
   }
-
-  // 3. 소요시간 산출
   const totalTime = ((endTime - startTime) / 1000);
   const totalTimeStr = totalTime.toFixed(2);
-
-  // 4-1. 비정상적으로 빠른 기록 차단
   const MIN_TIME_SEC = 5;
   if (totalTime < MIN_TIME_SEC) {
     return res.status(400).json({
       status: "error",
       message: "비정상적으로 빠른 기록입니다. 사람이 입력한 기록만 인정됩니다. 직접 타이핑 하신 기록이면 02-820-8269로 연락주세요.",
     });
-  } 
-
-  // 4-3. User-Agent 자동화 탐지
+  }
   const ua = req.headers['user-agent'] || "";
   if (/selenium|headless|webdriver|python|phantomjs|puppeteer/i.test(ua)) {
     return res.status(400).json({
@@ -213,8 +199,6 @@ app.post('/api/submit', async (req, res) => {
       message: "자동화 브라우저로 의심됩니다.",
     });
   }
-
-  // 4-4. 데이터 무결성 체크
   if (quizResults.length !== QUIZ_PROBLEMS.length) {
     return res.status(400).json({ status: "error", message: "정상적인 응답이 아닙니다." });
   }
@@ -223,15 +207,11 @@ app.post('/api/submit', async (req, res) => {
       return res.status(400).json({ status: "error", message: "비정상 응답(답이 너무 짧음)" });
     }
   }
-
-  // 5. 최고기록만 인정 (동일 회사/사번)
   const key = company + "/" + employeeId;
   const prev = recordSet.get(key);
   if (!prev || Number(prev.time) > Number(totalTimeStr)) {
     recordSet.set(key, { company, employeeId, name, time: totalTimeStr, correct: correctCount });
   }
-
-  // 6. 구글 시트 저장
   try {
     const gsRes = await axios.post(
       "https://script.google.com/macros/s/AKfycbygHe7k2HhSo9Exl-a7whiBmvBlk6eSmlMKgVkxOHct3xPvA1eoXszSyvZNRcEU9DAzcQ/exec",
