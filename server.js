@@ -56,6 +56,13 @@ QUIZ_IMG_FILES.forEach((fname, idx) => {
 });
 
 
+function shuffle(array) {
+  return array
+    .map((v) => ({ v, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ v }) => v);
+}
+
 
 
 app.get('/quizimg/:token', (req, res) => {
@@ -70,7 +77,9 @@ app.get('/api/problems', (req, res) => {
     ...prob,
     descImg: `/quizimg/${IDX_TOKEN_MAP[idx]}`
   }));
-  res.json(problemList);
+  // 여기서 셔플!
+  const shuffled = shuffle(problemList);
+  res.json(shuffled);
 });
 
 
