@@ -269,8 +269,8 @@ const App = () => {
         {step === "result" && (
           <QuizResult
             results={result}
-            startTime={startTime}
-            finalElapsed={finalElapsed}
+            startTime={result.startTime}
+            finalElapsed={result.elapsed}
             userInfo={result.userInfo}
             onRestart={handleRestart}
           />
