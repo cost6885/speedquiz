@@ -127,7 +127,7 @@ const QuizResult = ({ results, startTime, onRestart }) => {
     name: "",
   });
 
-  const correctCount = results.filter((r) => r.correct).length;
+  const correctCount = Array.isArray(results) ? results.filter((r) => r.correct).length : 0;
 
   // 제출
   const totalTime = (
