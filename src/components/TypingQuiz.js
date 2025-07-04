@@ -120,8 +120,7 @@ const TypingQuiz = ({
     setTimerActive(true);
     setTimeout(() => {
       if (inputRef.current) inputRef.current.focus();
-    }, 50);
-    console.log(quizStartTime);
+    }, 50);    
   };
 
   function normalize(str) {
