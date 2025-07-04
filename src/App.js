@@ -29,6 +29,7 @@ const App = () => {
   const [finalElapsed, setFinalElapsed] = useState(null);
   const [showNotice, setShowNotice] = useState(false);
   const [sessionId, setSessionId] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
 
 
 
