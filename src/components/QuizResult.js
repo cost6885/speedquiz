@@ -120,6 +120,7 @@ const keyframes = `
 const QuizResult = ({ results, startTime, onRestart }) => {
   const [submitted, setSubmitted] = useState(false);
   const [submitMsg, setSubmitMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     company: "",
     employeeId: "",
@@ -134,10 +135,12 @@ const QuizResult = ({ results, startTime, onRestart }) => {
   ).toFixed(2);
 
   const handleSubmit = async () => {
+    if (isSubmitting) return; // 중복방지!
     if (!form.company || !form.employeeId || !form.name) {
       setSubmitMsg("회사/사번/이름을 모두 입력하세요!");
       return;
     }
+    setIsSubmitting(true); // 요청 시작
     try {
       // ⬇️ startTime, endTime, quizResults 필수!
       const payload = {
@@ -158,6 +161,7 @@ const QuizResult = ({ results, startTime, onRestart }) => {
     } catch (e) {
       setSubmitMsg("제출 실패: " + e.message);
     }
+    setIsSubmitting(false); // 요청 끝!
   };
 
 
@@ -213,8 +217,8 @@ const QuizResult = ({ results, startTime, onRestart }) => {
         />
       </div>
       <div style={buttonWrap}>
-        <button style={buttonMain} onClick={handleSubmit}>
-          제출하기
+        <button style={buttonMain} onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? "제출 중..." : "제출하기"}
         </button>
         <button style={buttonGhost} onClick={onRestart}>
           다시하기
