@@ -125,67 +125,8 @@ const QuizResult = ({
   userInfo,
   onRestart,
 }) => {
-  const [submitMsg, setSubmitMsg] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  // 네가 쓰는 totalTime 공식!
-  // (예시: props로 finalElapsed를 초로 전달받았다면 그대로 씀)
-  const totalTime = (results.elapsed / 1000).toFixed(2);
-
-  useEffect(() => {
-    // 자동 제출: 최초 렌더에만 1회
-    const send = async () => {
-      try {
-        const payload = {
-          ...userInfo,
-          quizResults: results.userAnswers,
-          startTime,
-          endTime: startTime + finalElapsed,
-          timeTaken: totalTime,
-          status: "정상",
-        };        
-        const res = await submitRecord(payload);
-        if (res?.status === "success") {
-          setSubmitMsg("제출 완료! 기록이 저장되었습니다 🎉");
-        } else {
-          setSubmitMsg("저장 중 오류가 발생했습니다: " + (res?.message || ""));
-        }
-        setSubmitted(true);
-      } catch (e) {
-        setSubmitMsg("제출 실패: " + e.message);
-        setSubmitted(true);
-      }
-    };
-    send();
-    // eslint-disable-next-line
-  }, []);
-
-  if (submitted)
-    return (
-      <div style={boxStyle}>
-        <style>{keyframes}</style>
-        <div style={celebrate}>
-          <p>DIGITAL Literacy</p>
-          <p>🚦Speed Quiz🏁</p>
-        </div>
-        <div style={infoLabel}>
-          ⏱️ <b>총 소요 시간</b>{" "}
-          <span style={{ color: "#2277ee" }}>{totalTime}초</span>
-        </div>
-        <div style={celebrate}>🥳 제출 완료!</div>
-        <div style={{ fontSize: 18, marginBottom: 12, color: "#2277ee" }}>
-          기록이 저장되었습니다.
-          <br />
-          <span style={{ fontSize: 15, color: "#3f3f7f" }}>
-            참여해주셔서 감사합니다!
-          </span>
-        </div>
-        <button style={buttonGhost} onClick={onRestart}>
-          다시하기
-        </button>
-      </div>
-    );
-
+  // submitted, submitMsg 상태 및 관련 UI 모두 제거
+  // results.submitMsg를 그대로 사용
   return (
     <div style={boxStyle}>
       <FallingGangs />
@@ -197,11 +138,15 @@ const QuizResult = ({
       <div style={bigScore}>성공!!</div>
       <div style={infoLabel}>
         ⏱️ <b>총 소요 시간</b>{" "}
-        <span style={{ color: "#2277ee" }}>{totalTime}초</span>
+        <span style={{ color: "#2277ee" }}>{(results.elapsed / 1000).toFixed(2)}초</span>
       </div>
-      <div style={msgStyle}>{submitMsg ? submitMsg : "기록 제출 중..."}</div>
+      <div style={msgStyle}>{results.submitMsg || "기록 제출 중..."}</div>
+      <button style={buttonGhost} onClick={onRestart}>
+        다시하기
+      </button>
     </div>
   );
 };
+
 
 export default QuizResult;
