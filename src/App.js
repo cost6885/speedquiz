@@ -32,6 +32,7 @@ const App = () => {
   const [sessionId, setSessionId] = useState(null);
   const [userInfo, setUserInfo] = useState(null);  
   const [showUserInfo, setShowUserInfo] = useState(false); 
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
 
 
@@ -77,48 +78,49 @@ const App = () => {
   };
 
   
-  const handleFinish = (userAnswers, start, elapsed) => {
-    setFinalElapsed(elapsed);
-    // 바로 기록 제출 (userInfo, 결과, 시간 포함)
-    const endTime = start + elapsed;
-    const payload = {
-      ...userInfo,
-      quizResults: userAnswers,
-      startTime: start,
-      endTime,
-      timeTaken: (elapsed / 1000).toFixed(2),
-      status: "정상",
-    };
-    // 👇 비동기로 기록 저장
-    fetch("/api/submit", {
+  const handleFinish = async (userAnswers, start, elapsed) => {
+  setFinalElapsed(elapsed);
+  setIsSubmitting(true); // ✅ 기록 제출 시작!
+
+  const endTime = start + elapsed;
+  const payload = {
+    ...userInfo,
+    quizResults: userAnswers,
+    startTime: start,
+    endTime,
+    timeTaken: (elapsed / 1000).toFixed(2),
+    status: "정상",
+  };
+  try {
+    const res = await fetch("/api/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    })
-      .then((res) => res.json())
-      .then((res) => {
-        setResult({
-          userAnswers,
-          startTime: start,
-          elapsed,
-          userInfo,
-          submitMsg:
-            res.status === "success"
-              ? "제출 완료! 기록이 저장되었습니다 🎉"
-              : "저장 중 오류가 발생했습니다: " + (res?.message || ""),
-        });
-        setStep("result");
-      })
-      .catch(() => {
-        setResult({
-          userAnswers,
-          startTime: start,
-          elapsed,
-          submitMsg: "기록 제출 실패 ㅠㅠ",
-        });
-        setStep("result");
-      });
-  };
+    }).then(r => r.json());
+    setResult({
+      userAnswers,
+      startTime: start,
+      elapsed,
+      userInfo,
+      submitMsg:
+        res.status === "success"
+          ? "제출 완료! 기록이 저장되었습니다 🎉"
+          : "저장 중 오류가 발생했습니다: " + (res?.message || ""),
+    });
+    setStep("result");
+  } catch (e) {
+    setResult({
+      userAnswers,
+      startTime: start,
+      elapsed,
+      submitMsg: "기록 제출 실패 ㅠㅠ",
+    });
+    setStep("result");
+  } finally {
+    setIsSubmitting(false); // ✅ 제출 끝!
+  }
+};
+
 
   // 다시하기
   const handleRestart = async () => {
@@ -140,7 +142,29 @@ const App = () => {
         onCancel={() => setShowUserInfo(false)}
       />
       <NoticeModal open={showNotice} onClose={handleNoticeClose} />
-      {isStarting && (
+      
+      {isSubmitting && (
+      <div
+        style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(255,255,255,0.76)",
+          fontSize: 32,
+          fontWeight: 700,
+        }}
+      >
+        기록 저장 중...
+        {/* 
+          로딩 스피너를 하나 더 추가하려면 아래처럼 써도 됨! 
+          <div className="spinner" />
+        */}
+      </div>
+    )}
+  {isStarting && (
         <HearthstonePortalLoading
           onEnd={() => {
             setStep("quiz");
