@@ -286,3 +286,10 @@ button {
   opacity: 1;
   transform: translateY(0) scale(1);
 }
+.spinner {
+  width: 54px; height: 54px; border: 7px solid #eee;
+  border-top: 7px solid #35c6e0; border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 18px;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
