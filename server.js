@@ -194,11 +194,32 @@ app.post('/api/submit', async (req, res) => {
   const totalTimeStr = totalTime.toFixed(2);
   const MIN_TIME_SEC = 5;
   if (totalTime < MIN_TIME_SEC) {
-    return res.status(400).json({
-      status: "error",
-      message: "비정상적으로 빠른 기록입니다. 사람이 입력한 기록만 인정됩니다. 직접 타이핑 하신 기록이면 02-820-8269로 연락주세요.",
-    });
+  // 👇 부정행위자 이름으로 앱스크립트에 저장
+  try {
+    await axios.post(
+      "https://script.google.com/macros/s/AKfycbygHe7k2HhSo9Exl-a7whiBmvBlk6eSmlMKgVkxOHct3xPvA1eoXszSyvZNRcEU9DAzcQ/exec",
+      {
+        company: "부정행위자",
+        employeeId,
+        name,
+        timeTaken: totalTimeStr,
+        correctCount: quizResults.filter((a, idx) =>
+          checkCorrect(a?.userInput, QUIZ_PROBLEMS[idx].accepts)
+        ).length,
+        ip: userIp,
+        quizResults
+      },
+      { headers: { "Content-Type": "text/plain;charset=utf-8" } }
+    );
+  } catch (err) {
+    console.error("부정행위 기록 발송 실패", err.message);
   }
+  // 사용자에겐 경고만 전달
+  return res.status(400).json({
+    status: "error",
+    message: "비정상적으로 빠른 기록입니다. 사람이 입력한 기록만 인정됩니다. 직접 타이핑 하신 기록이면 02-820-8269로 연락주세요.",
+  });
+}
   const ua = req.headers['user-agent'] || "";
   if (/selenium|headless|webdriver|python|phantomjs|puppeteer/i.test(ua)) {
     return res.status(400).json({
