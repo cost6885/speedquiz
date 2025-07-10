@@ -220,15 +220,20 @@ const TypingQuiz = ({
 
   // 엔터키
   const handleKeyDown = (e) => {
-    if (
-      (e.ctrlKey || e.metaKey) &&
-      ["v", "V", "c", "C", "x", "X", "a", "A"].includes(e.key)
-    ) {
+    // 1. F1~F12 모두 막기
+    if (/^F\d{1,2}$/.test(e.key)) {
       e.preventDefault();
       return;
     }
+    // 2. Ctrl, Alt, Shift 중 하나라도 눌리면 다 막기!
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
+      e.preventDefault();
+      return;
+    }
+    // 3. Enter 키는 정상동작
     if (e.key === "Enter") handleNext();
   };
+
 
   return (
     <div className="quiz-box">
