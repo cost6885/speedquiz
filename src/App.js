@@ -44,10 +44,7 @@ const App = () => {
     setSessionId(sessionId);
   };
 
-    // 최초 렌더(또는 intro 복귀)시 문제 셔플
-  useEffect(() => {
-    if (step === "intro") fetchProblems();
-  }, [step]);
+
   
   const startGame = () => setShowUserInfo(true);
 
@@ -133,7 +130,15 @@ const App = () => {
     setStep("intro");
   };
 
-
+  const handleLoadingEnd = async () => {
+    try {
+      await fetchProblems();          // 셔플!
+      setStep("quiz");                // 퀴즈 시작!
+    } finally {
+      setIsStarting(false);
+    }
+  };
+  
 
   
   return (
@@ -166,14 +171,9 @@ const App = () => {
         */}
       </div>
     )}
-  {isStarting && (
-        <HearthstonePortalLoading
-          onEnd={() => {
-            setStep("quiz");
-            setIsStarting(false);
-          }}
-        />
-      )}
+    {isStarting && (
+      <HearthstonePortalLoading onEnd={handleLoadingEnd} />
+    )}
       {step === "quiz" && (
         <FallingBgLayer answerWord={quizList[currentIdx]?.word} />
       )}
